@@ -31,7 +31,7 @@ const sendStatusEmail = async (toEmail, userName, status, leaveType, fromDate, t
   const statusBg = isApproved ? '#d1fae5' : '#fee2e2';
   const statusIcon = isApproved ? '✓' : '✕';
  
-  const mailOptions = { 
+ const mailOptions = { 
     from: '"ClassBuzz Admin" <khanfaiyyaz25003@gmail.com>', 
     to: toEmail, 
     subject: `Leave Application ${status} - ${leaveType}`, 
@@ -43,32 +43,41 @@ const sendStatusEmail = async (toEmail, userName, status, leaveType, fromDate, t
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Leave Application Status</title>
     </head>
-    <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <body style="margin: 0; padding: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
       <table role="presentation" style="width: 100%; border-collapse: collapse;">
         <tr>
-          <td align="center" style="padding: 40px 20px;">
+          <td align="center" style="padding: 50px 20px;">
             
             <!-- Main Container -->
-            <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+            <table role="presentation" style="width: 100%; max-width: 650px; border-collapse: collapse; background-color: #ffffff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); overflow: hidden;">
               
-              <!-- Header -->
+              <!-- Decorative Top Bar -->
               <tr>
-                <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
-                  <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">
-                    ClassBuzz
-                  </h1>
-                  <p style="margin: 8px 0 0 0; color: #e0e7ff; font-size: 14px;">
-                    Leave Management System
-                  </p>
+                <td style="height: 8px; background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);"></td>
+              </tr>
+              
+              <!-- Header with Pattern -->
+              <tr>
+                <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 50px 40px; text-align: center; position: relative;">
+                  <div style="position: relative; z-index: 2;">
+                    <div style="display: inline-block; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 15px 30px; border-radius: 50px; margin-bottom: 20px; border: 2px solid rgba(255, 255, 255, 0.3);">
+                      <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 700; letter-spacing: 1px;">
+                        ✨ ClassBuzz
+                      </h1>
+                    </div>
+                    <p style="margin: 12px 0 0 0; color: #e0e7ff; font-size: 16px; font-weight: 500; letter-spacing: 0.5px;">
+                      Smart Leave Management System
+                    </p>
+                  </div>
                 </td>
               </tr>
               
-              <!-- Status Badge -->
+              <!-- Floating Status Badge -->
               <tr>
-                <td align="center" style="padding: 0; transform: translateY(-25px);">
-                  <div style="display: inline-block; background-color: ${statusBg}; border: 3px solid #ffffff; border-radius: 50px; padding: 12px 32px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
-                    <span style="font-size: 20px; margin-right: 8px;">${statusIcon}</span>
-                    <span style="color: ${statusColor}; font-weight: 700; font-size: 18px; text-transform: uppercase; letter-spacing: 0.5px;">
+                <td align="center" style="padding: 0; transform: translateY(-35px);">
+                  <div style="display: inline-block; background: linear-gradient(135deg, ${isApproved ? '#10b981' : '#ef4444'} 0%, ${isApproved ? '#059669' : '#dc2626'} 100%); border: 5px solid #ffffff; border-radius: 60px; padding: 18px 45px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                    <span style="font-size: 28px; margin-right: 10px;">${statusIcon}</span>
+                    <span style="color: #ffffff; font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: 1.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                       ${status}
                     </span>
                   </div>
@@ -77,56 +86,63 @@ const sendStatusEmail = async (toEmail, userName, status, leaveType, fromDate, t
               
               <!-- Content -->
               <tr>
-                <td style="padding: 0 40px 40px 40px;">
+                <td style="padding: 0 45px 50px 45px;">
                   
-                  <!-- Greeting -->
-                  <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-                    Dear <strong style="color: #1f2937;">${userName}</strong>,
+                  <!-- Greeting with Icon -->
+                  <div style="text-align: center; margin-bottom: 35px;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">👋</div>
+                    <p style="margin: 0; color: #1f2937; font-size: 18px; line-height: 1.6;">
+                      Hello, <strong style="color: #667eea; font-size: 20px;">${userName}</strong>
+                    </p>
+                  </div>
+                  
+                  <p style="margin: 0 0 35px 0; color: #4b5563; font-size: 16px; line-height: 1.8; text-align: center;">
+                    We're writing to inform you that your leave application has been <strong style="color: ${statusColor};">${status.toLowerCase()}</strong>. Here are the details:
                   </p>
                   
-                  <p style="margin: 0 0 30px 0; color: #6b7280; font-size: 15px; line-height: 1.6;">
-                    Your leave application has been processed and the status has been updated to <strong style="color: ${statusColor};">${status}</strong>.
-                  </p>
-                  
-                  <!-- Details Card -->
-                  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f9fafb; border-radius: 8px; overflow: hidden; margin-bottom: 30px;">
+                  <!-- Enhanced Details Card -->
+                  <table role="presentation" style="width: 100%; border-collapse: collapse; background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%); border-radius: 16px; overflow: hidden; margin-bottom: 35px; border: 2px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
                     <tr>
-                      <td style="padding: 24px;">
-                        <h3 style="margin: 0 0 20px 0; color: #111827; font-size: 16px; font-weight: 600; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
-                          Leave Details
-                        </h3>
+                      <td style="padding: 35px;">
+                        <div style="text-align: center; margin-bottom: 25px;">
+                          <div style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 10px 25px; border-radius: 25px; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">
+                            📋 Leave Details
+                          </div>
+                        </div>
                         
-                        <!-- Leave Type -->
-                        <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
-                          <tr>
-                            <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 40%;">
-                              <strong>Leave Type:</strong>
-                            </td>
-                            <td style="padding: 8px 0; color: #1f2937; font-size: 14px; font-weight: 500;">
-                              ${leaveType}
-                            </td>
-                          </tr>
-                        </table>
+                        <!-- Leave Type with Icon -->
+                        <div style="background: #ffffff; border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 5px solid #667eea; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
+                          <div style="color: #9ca3af; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;">
+                            📝 Leave Type
+                          </div>
+                          <div style="color: #1f2937; font-size: 18px; font-weight: 700;">
+                            ${leaveType}
+                          </div>
+                        </div>
                         
-                        <!-- Duration -->
-                        <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 6px; padding: 16px; border: 1px solid #e5e7eb;">
+                        <!-- Duration Cards -->
+                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
                           <tr>
-                            <td style="padding: 0 0 12px 0;">
-                              <div style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
-                                From
-                              </div>
-                              <div style="color: #1f2937; font-size: 15px; font-weight: 600;">
-                                📅 ${formattedFrom}
+                            <td style="width: 48%; padding-right: 2%; vertical-align: top;">
+                              <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 20px; text-align: center; border: 2px solid #10b981;">
+                                <div style="font-size: 32px; margin-bottom: 10px;">📅</div>
+                                <div style="color: #065f46; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 700;">
+                                  Start Date
+                                </div>
+                                <div style="color: #047857; font-size: 16px; font-weight: 700;">
+                                  ${formattedFrom}
+                                </div>
                               </div>
                             </td>
-                          </tr>
-                          <tr>
-                            <td style="padding: 12px 0 0 0; border-top: 1px solid #f3f4f6;">
-                              <div style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
-                                To
-                              </div>
-                              <div style="color: #1f2937; font-size: 15px; font-weight: 600;">
-                                📅 ${formattedTo}
+                            <td style="width: 48%; padding-left: 2%; vertical-align: top;">
+                              <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; padding: 20px; text-align: center; border: 2px solid #f59e0b;">
+                                <div style="font-size: 32px; margin-bottom: 10px;">📅</div>
+                                <div style="color: #92400e; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 700;">
+                                  End Date
+                                </div>
+                                <div style="color: #b45309; font-size: 16px; font-weight: 700;">
+                                  ${formattedTo}
+                                </div>
                               </div>
                             </td>
                           </tr>
@@ -136,41 +152,68 @@ const sendStatusEmail = async (toEmail, userName, status, leaveType, fromDate, t
                     </tr>
                   </table>
                   
-                  <!-- Message -->
+                  <!-- Status Message with Enhanced Design -->
                   ${isApproved 
-                    ? `<div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 16px; border-radius: 6px; margin-bottom: 30px;">
-                         <p style="margin: 0; color: #065f46; font-size: 14px; line-height: 1.6;">
-                           <strong>✓ Approved:</strong> Your leave has been approved. Please ensure all necessary handovers are completed before your leave begins.
+                    ? `<div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-left: 6px solid #10b981; padding: 25px; border-radius: 12px; margin-bottom: 35px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);">
+                         <div style="font-size: 36px; text-align: center; margin-bottom: 15px;">🎉</div>
+                         <p style="margin: 0; color: #065f46; font-size: 15px; line-height: 1.8; text-align: center;">
+                           <strong style="font-size: 17px;">Congratulations!</strong><br>
+                           Your leave has been approved. Please ensure all necessary handovers are completed before your leave begins. Have a great time!
                          </p>
                        </div>`
-                    : `<div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; border-radius: 6px; margin-bottom: 30px;">
-                         <p style="margin: 0; color: #991b1b; font-size: 14px; line-height: 1.6;">
-                           <strong>✕ Not Approved:</strong> Your leave application could not be approved at this time. Please contact HR for more information.
+                    : `<div style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-left: 6px solid #ef4444; padding: 25px; border-radius: 12px; margin-bottom: 35px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);">
+                         <div style="font-size: 36px; text-align: center; margin-bottom: 15px;">ℹ️</div>
+                         <p style="margin: 0; color: #991b1b; font-size: 15px; line-height: 1.8; text-align: center;">
+                           <strong style="font-size: 17px;">Application Not Approved</strong><br>
+                           Your leave application could not be approved at this time. Please contact the HR department for more information and guidance.
                          </p>
                        </div>`
                   }
                   
+                  <!-- Divider -->
+                  <div style="border-top: 2px dashed #e5e7eb; margin: 35px 0;"></div>
+                  
                   <!-- Closing -->
-                  <p style="margin: 0 0 8px 0; color: #374151; font-size: 15px;">
-                    Best regards,
-                  </p>
-                  <p style="margin: 0; color: #667eea; font-size: 15px; font-weight: 600;">
-                    College HR Team
-                  </p>
+                  <div style="text-align: center;">
+                    <p style="margin: 0 0 12px 0; color: #4b5563; font-size: 16px;">
+                      Best regards,
+                    </p>
+                    <p style="margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 18px; font-weight: 700;">
+                      College HR Team 💼
+                    </p>
+                  </div>
                   
                 </td>
               </tr>
               
-              <!-- Footer -->
+              <!-- Footer with Gradient -->
               <tr>
-                <td style="background-color: #f9fafb; padding: 30px 40px; border-top: 1px solid #e5e7eb;">
-                  <p style="margin: 0 0 12px 0; color: #9ca3af; font-size: 13px; line-height: 1.6; text-align: center;">
-                    This is an automated message from ClassBuzz Leave Management System.
-                  </p>
-                  <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
-                    © ${new Date().getFullYear()} ClassBuzz. All rights reserved.
-                  </p>
+                <td style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); padding: 35px 45px; border-top: 3px solid #e5e7eb;">
+                  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="text-align: center; padding-bottom: 15px;">
+                        <div style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 8px 20px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">
+                          AUTOMATED MESSAGE
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: center;">
+                        <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 13px; line-height: 1.6;">
+                          This is an automated notification from ClassBuzz Leave Management System.
+                        </p>
+                        <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                          © ${new Date().getFullYear()} ClassBuzz. All rights reserved. | Made with ❤️
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
                 </td>
+              </tr>
+              
+              <!-- Bottom Decorative Bar -->
+              <tr>
+                <td style="height: 8px; background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);"></td>
               </tr>
               
             </table>
@@ -181,7 +224,7 @@ const sendStatusEmail = async (toEmail, userName, status, leaveType, fromDate, t
     </body>
     </html>
     `, 
-  }; 
+  };
  
   try { 
     await transporter.sendMail(mailOptions); 
