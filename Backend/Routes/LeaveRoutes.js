@@ -1,26 +1,26 @@
 
 
-// routes/leaveRoutes.js
 import express from "express";
-import {
-  submitLeave,
-  getAllLeaves,
-  updateLeaveStatus,
-  deleteLeave,
-} from "../Controller/LeaveController.js"
+import multer from "multer";
+import { submitLeave, getAllLeaves, updateLeaveStatus, deleteLeave } from "../Controller/LeaveController.js";
 
 const router = express.Router();
 
-// Submit leave
-router.post("/", submitLeave);
+// Multer setup for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "_" + file.originalname);
+  },
+});
+const upload = multer({ storage });
 
-// Get all leaves
+// Routes
+router.post("/", upload.single("attachment"), submitLeave);
 router.get("/", getAllLeaves);
-
-// Update leave status
 router.put("/:id", updateLeaveStatus);
-
-// Delete leave
-router.delete("/:id", deleteLeave); // ✅ Make sure this exists
+router.delete("/:id", deleteLeave);
 
 export default router;
