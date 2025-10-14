@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import userRoutes from "./Routes/userRoutes.js";
 import leaveRoutes from "./Routes/LeaveRoutes.js";
+import attendanceRoutes from "./Routes/attendanceRoutes.js";
 
 
 dotenv.config();
@@ -16,6 +17,7 @@ app.use(express.json());
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/leave", leaveRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
