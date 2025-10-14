@@ -1,73 +1,73 @@
 import Leave from "../Models/LeaveModel.js";
+import path from "path";
+import fs from "fs";
 
-import nodemailer from "nodemailer";
-
-// ===== Create Leave Request =====
-export const createLeave = async (req, res) => {
+// Submit Leave
+export const submitLeave = async (req, res) => {
   try {
-    const { userId, reason, fromDate, toDate } = req.body;
-    const leave = new Leave({ userId, reason, fromDate, toDate, status: "Pending" });
+    const { fromDate, toDate, leaveType, approver, reason } = req.body;
+
+    if (!leaveType || !approver || !reason) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    let attachmentPath = null;
+    if (req.file) {
+      attachmentPath = `/uploads/${req.file.filename}`;
+    }
+
+    const leave = new Leave({
+      fromDate,
+      toDate,
+      leaveType,
+      approver,
+      reason,
+      attachment: attachmentPath,
+    });
+
     await leave.save();
-    res.status(201).json(leave);
+    res.status(201).json({ message: "Leave application submitted", leave });
   } catch (error) {
-    res.status(500).json({ message: "Error creating leave", error });
+    console.error(error);
+    res.status(500).json({ error: "Failed to submit leave" });
   }
 };
 
-// ===== Get All Leave Requests =====
+// Get all leaves (for admin panel later)
 export const getAllLeaves = async (req, res) => {
   try {
-    const leaves = await Leave.find().populate("userId", "name email");
-    res.json(leaves);
+    const leaves = await Leave.find().sort({ createdAt: -1 });
+    res.status(200).json(leaves);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching leaves", error });
+    res.status(500).json({ error: "Failed to fetch leaves" });
   }
 };
 
-// ===== Update Leave Status (Accept/Reject) =====
+
+// Update Leave Status (Accept / Reject)
 export const updateLeaveStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body;
+    const { id } = req.params; // leave ID from URL
+    const { status } = req.body; // new status from frontend
 
-    const leave = await Leave.findById(id).populate("userId", "email name");
-    if (!leave) return res.status(404).json({ message: "Leave not found" });
+    // Validate input
+    if (!status) {
+      return res.status(400).json({ error: "Status is required" });
+    }
 
+    // Check if leave exists
+    const leave = await Leave.findById(id);
+    if (!leave) {
+      return res.status(404).json({ error: "Leave not found" });
+    }
+
+    // Update the status
     leave.status = status;
     await leave.save();
 
-    // ===== Send Email =====
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    const subject =
-      status === "Accepted"
-        ? "Your Leave Request has been Approved"
-        : "Your Leave Request has been Rejected";
-
-    const message = `
-      Hi ${leave.userId.name},
-      <br/><br/>
-      Your leave request from <b>${leave.fromDate}</b> to <b>${leave.toDate}</b> 
-      has been <b>${status}</b>.
-      <br/><br/>
-      Regards,<br/>HR Department
-    `;
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: leave.userId.email,
-      subject,
-      html: message,
-    });
-
-    res.json({ message: `Leave ${status} and email sent successfully` });
+    res.status(200).json({ message: "Leave status updated successfully", leave });
   } catch (error) {
-    res.status(500).json({ message: "Error updating leave status", error });
+    console.error("Error updating leave status:", error);
+    res.status(500).json({ error: "Server error while updating leave status" });
   }
 };
