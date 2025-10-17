@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema(
 
     joinDate: { type: Date, required: true },
     password: { type: String, required: true },
+   isBlocked: { type: Boolean, default: false }, // ✅ for blocking user
   },
   { timestamps: true }
 );

@@ -1024,30 +1024,24 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// ===================== Login User =====================
+// 🔹 User login (prevent blocked users)
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Please enter both email and password" });
-    }
-
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // ✅ Check if blocked
+    if (user.isBlocked) {
+      return res
+        .status(403)
+        .json({ message: "Your account has been blocked by admin" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
+    if (!isMatch)
       return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    const token = jwt.sign(
-      { id: user._id, email: user.email, name: user.name },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
 
     res.status(200).json({
       success: true,
@@ -1056,17 +1050,11 @@ export const loginUser = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
-        gender: user.gender,
-        departments: user.departments,
         positions: user.positions,
-        joinDate: user.joinDate,
       },
-      token,
     });
   } catch (error) {
-    console.error("Login Error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Login failed", error });
   }
 };
 
@@ -1079,5 +1067,52 @@ export const getCurrentUser = async (req, res) => {
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+// 🔹 Edit user details
+export const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedData = req.body;
+
+    const updatedUser = await User.findByIdAndUpdate(id, updatedData, {
+      new: true,
+    });
+
+    if (!updatedUser)
+      return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating user", error });
+  }
+};
+
+// 🔹 Block or Unblock user
+export const toggleBlockUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.isBlocked = !user.isBlocked; // Toggle block/unblock
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: user.isBlocked
+        ? "User has been blocked"
+        : "User has been unblocked",
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error toggling user block", error });
   }
 };
