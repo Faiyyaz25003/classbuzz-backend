@@ -2,6 +2,31 @@ import Fee from "../Models/feeModel.js";
 import User from "../Models/UserModels.js";
 
 // ✅ Add Fee Record
+// export const addFee = async (req, res) => {
+//   try {
+//     const { userId, amount, installment } = req.body;
+
+//     if (!userId || !amount || !installment) {
+//       return res.status(400).json({ message: "All fields are required" });
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     // Save Fee record
+//     const newFee = new Fee({ userId, amount, installment });
+//     await newFee.save();
+
+//     res.status(201).json({
+//       message: "Fee record added successfully",
+//       fee: newFee,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Error adding fee", error: error.message });
+//   }
+// };
+
 export const addFee = async (req, res) => {
   try {
     const { userId, amount, installment } = req.body;
@@ -13,17 +38,17 @@ export const addFee = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Save Fee record
-    const newFee = new Fee({ userId, amount, installment });
-    await newFee.save();
+    // Update fee info
+    user.feeAmount = (user.feeAmount || 0) + parseFloat(amount);
+    user.installment = parseInt(installment);
+    user.feesPaid = true;
 
-    res.status(201).json({
-      message: "Fee record added successfully",
-      fee: newFee,
-    });
+    await user.save(); // ✅ This saves it in the database
+
+    res.status(200).json({ message: "Fee saved successfully", user });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error adding fee", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
