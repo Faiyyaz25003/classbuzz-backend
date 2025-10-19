@@ -1,32 +1,8 @@
 import Fee from "../Models/feeModel.js";
 import User from "../Models/UserModels.js";
+import nodemailer from "nodemailer";
 
 // ✅ Add Fee Record
-// export const addFee = async (req, res) => {
-//   try {
-//     const { userId, amount, installment } = req.body;
-
-//     if (!userId || !amount || !installment) {
-//       return res.status(400).json({ message: "All fields are required" });
-//     }
-
-//     const user = await User.findById(userId);
-//     if (!user) return res.status(404).json({ message: "User not found" });
-
-//     // Save Fee record
-//     const newFee = new Fee({ userId, amount, installment });
-//     await newFee.save();
-
-//     res.status(201).json({
-//       message: "Fee record added successfully",
-//       fee: newFee,
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Error adding fee", error: error.message });
-//   }
-// };
-
 export const addFee = async (req, res) => {
   try {
     const { userId, amount, installment } = req.body;
@@ -38,17 +14,50 @@ export const addFee = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Update fee info
-    user.feeAmount = (user.feeAmount || 0) + parseFloat(amount);
-    user.installment = parseInt(installment);
-    user.feesPaid = true;
+    // Save Fee record
+    const newFee = new Fee({ userId, amount, installment });
+    await newFee.save();
 
-    await user.save(); // ✅ This saves it in the database
+    // ---- Nodemailer setup ----
+    const transporter = nodemailer.createTransport({
+      service: "Gmail", // or any other email provider
+      auth: {
+        user: process.env.EMAIL_USER, // your email
+        pass: process.env.EMAIL_PASS, // your email password or app password
+      },
+    });
 
-    res.status(200).json({ message: "Fee saved successfully", user });
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Fee Payment Confirmation",
+      html: `
+        <h3>Fee Payment Successful</h3>
+        <p>Dear ${user.name},</p>
+        <p>We have received your fee payment:</p>
+        <ul>
+          <li>Amount: ${amount}</li>
+          <li>Installment: ${installment}</li>
+        </ul>
+        <p>Thank you!</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) {
+        console.error("Email sending error:", err);
+      } else {
+        console.log("Email sent:", info.response);
+      }
+    });
+
+    res.status(201).json({
+      message: "Fee record added successfully and email sent",
+      fee: newFee,
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Error adding fee", error: error.message });
   }
 };
 
