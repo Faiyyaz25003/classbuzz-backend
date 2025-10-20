@@ -95,13 +95,36 @@ export const getAllFees = async (req, res) => {
 };
 
 // ✅ Get Fee by User
-export const getFeeByUser = async (req, res) => {
+export const getFeesByUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const fees = await Fee.find({ userId }).sort({ createdAt: -1 });
+    if (!userId) return res.status(400).json({ message: "User ID is required" });
+
+    const fees = await Fee.find({ userId }).sort({ createdAt: -1 }); // latest first
     res.status(200).json(fees);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching user fees", error: error.message });
+    console.error("Error fetching fees:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Get all fees of a specific user
+// Get all fees of a specific user
+export const getUserFees = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Fetch all fees for this user
+    const fees = await Fee.find({ userId }).sort({ createdAt: -1 }); // latest first
+
+    res.status(200).json(fees);
+  } catch (error) {
+    console.error("Error fetching user fees:", error);
+    res.status(500).json({ message: "Failed to fetch fees", error: error.message });
   }
 };
 
