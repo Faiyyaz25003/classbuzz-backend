@@ -15,15 +15,25 @@ export const addFee = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // Save Fee record
+    // const newFee = new Fee({
+    //   userId,
+    //   amount,
+    //   installment,
+    //   paymentMethod,
+    //   paymentName,
+    //   feeDate: new Date(),
+    // });
+    // await newFee.save();
+
     const newFee = new Fee({
-      userId,
-      amount,
-      installment,
-      paymentMethod,
-      paymentName,
-      feeDate: new Date(),
-    });
-    await newFee.save();
+  userId,
+  amount,
+  installment,
+  paymentMethod,
+  paymentName,
+  feeDate: new Date(),
+});
+await newFee.save();
 
     // Update user's fee summary fields
     user.feeAmount = (user.feeAmount || 0) + parseFloat(amount);
