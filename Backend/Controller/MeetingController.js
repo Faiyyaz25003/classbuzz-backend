@@ -1,13 +1,52 @@
 import Meeting from "../Models/meetingModels.js";
-
+import nodemailer from "nodemailer";
 
 // Create a new meeting
 export const createMeeting = async (req, res) => {
   try {
     const newMeeting = new Meeting(req.body);
     await newMeeting.save();
+
+    // Send email to participants
+    if (newMeeting.participants && newMeeting.participants.length > 0) {
+      // Configure transporter
+      const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com", // or your email provider
+        port: 587,
+        secure: false,
+        auth: {
+          user: process.env.EMAIL_USER, // your email
+          pass: process.env.EMAIL_PASS, // app password or email password
+        },
+      });
+
+      // Loop through participants and send email
+      for (const participantEmail of newMeeting.participants) {
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: participantEmail,
+          subject: `New Meeting Scheduled: ${newMeeting.title}`,
+          text: `
+            Hello,
+
+            You have been invited to a meeting.
+
+            Title: ${newMeeting.title}
+            Date: ${newMeeting.date}
+            Time: ${newMeeting.startTime || "N/A"}
+            Description: ${newMeeting.description || "No description"}
+
+            Please join on time.
+          `,
+        };
+
+        await transporter.sendMail(mailOptions);
+      }
+    }
+
     res.status(201).json(newMeeting);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to save meeting" });
   }
 };
