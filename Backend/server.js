@@ -16,6 +16,10 @@ import attendanceRoutes from "./routes/attendanceRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
 import feeRoutes from "./routes/feeRoutes.js";
 
+import taskRoutes from "./Routes/taskRoutes.js";
+import eventRoutes from "./Routes/eventRoutes.js";
+import meetingRoutes from "./Routes/meetingRoutes.js";
+
 dotenv.config();
 const app = express();
 
@@ -35,6 +39,10 @@ app.use("/api/leave", leaveRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/fees", feeRoutes);
+
+app.use("/api/tasks", taskRoutes);
+app.use("/api/events", eventRoutes);
+app.use("/api/meetings", meetingRoutes);
 
 // ================== Server Setup ==================
 const PORT = process.env.PORT || 5000;
