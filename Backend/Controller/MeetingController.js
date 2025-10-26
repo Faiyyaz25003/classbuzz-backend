@@ -1,5 +1,6 @@
 import Meeting from "../Models/meetingModels.js";
 import nodemailer from "nodemailer";
+import cron from "node-cron";
 
 // Create a new meeting
 export const createMeeting = async (req, res) => {
@@ -7,42 +8,53 @@ export const createMeeting = async (req, res) => {
     const newMeeting = new Meeting(req.body);
     await newMeeting.save();
 
-    // Send email to participants
-    if (newMeeting.participants && newMeeting.participants.length > 0) {
-      // Configure transporter
-      const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com", // or your email provider
-        port: 587,
-        secure: false,
-        auth: {
-          user: process.env.EMAIL_USER, // your email
-          pass: process.env.EMAIL_PASS, // app password or email password
-        },
-      });
+    // Email transporter
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
-      // Loop through participants and send email
+    // Send immediate invitation email
+    const sendInvitation = async () => {
       for (const participantEmail of newMeeting.participants) {
-        const mailOptions = {
-          from: process.env.EMAIL_USER,
+        await transporter.sendMail({
+          from: `"Meeting Scheduler" <${process.env.EMAIL_USER}>`,
           to: participantEmail,
-          subject: `New Meeting Scheduled: ${newMeeting.title}`,
-          text: `
-            Hello,
-
-            You have been invited to a meeting.
-
-            Title: ${newMeeting.title}
-            Date: ${newMeeting.date}
-            Time: ${newMeeting.startTime || "N/A"}
-            Description: ${newMeeting.description || "No description"}
-
-            Please join on time.
-          `,
-        };
-
-        await transporter.sendMail(mailOptions);
+          subject: `📅 New Meeting: ${newMeeting.title}`,
+          html: `<h2>You're invited to a meeting!</h2>
+                 <p>Title: ${newMeeting.title}</p>
+                 <p>Date: ${newMeeting.date}</p>
+                 <p>Time: ${newMeeting.startTime || "N/A"}</p>
+                 <p>Description: ${newMeeting.description || "No description"}</p>`,
+        });
       }
-    }
+    };
+
+    sendInvitation();
+
+    // Schedule reminder email 15 minutes before meeting
+    const meetingDateTime = new Date(`${newMeeting.date}T${newMeeting.startTime}`);
+    const reminderTime = new Date(meetingDateTime.getTime() - 15 * 60 * 1000); // 15 mins before
+
+    const cronTime = `${reminderTime.getMinutes()} ${reminderTime.getHours()} ${reminderTime.getDate()} ${reminderTime.getMonth() + 1} *`;
+
+    cron.schedule(cronTime, async () => {
+      for (const participantEmail of newMeeting.participants) {
+        await transporter.sendMail({
+          from: `"Meeting Scheduler" <${process.env.EMAIL_USER}>`,
+          to: participantEmail,
+          subject: `⏰ Reminder: ${newMeeting.title} in 15 minutes`,
+          html: `<h2>Reminder!</h2>
+                 <p>Your meeting "${newMeeting.title}" starts at ${newMeeting.startTime}.</p>
+                 <p>Description: ${newMeeting.description || "No description"}</p>`,
+        });
+      }
+    });
 
     res.status(201).json(newMeeting);
   } catch (error) {

@@ -2,47 +2,76 @@ import Task from "../Models/taskModels.js";
 import nodemailer from "nodemailer";
 
 
-
 // Create a new task
 export const createTask = async (req, res) => {
   try {
     const newTask = new Task(req.body);
     await newTask.save();
 
-    // Send email to participants
     if (newTask.participants && newTask.participants.length > 0) {
       const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com", // or your SMTP provider
+        host: "smtp.gmail.com",
         port: 587,
         secure: false,
         auth: {
-          user: process.env.EMAIL_USER, // your email
-          pass: process.env.EMAIL_PASS, // app password
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
         },
       });
 
-      for (const participantEmail of newTask.participants) {
-        const mailOptions = {
-          from: process.env.EMAIL_USER,
-          to: participantEmail,
-          subject: `New Task Assigned: ${newTask.title}`,
-          text: `
-Hello,
+      // Function to send email
+      const sendEmail = async (subject, htmlContent) => {
+        for (const participantEmail of newTask.participants) {
+          await transporter.sendMail({
+            from: `"ClassBuzz" <${process.env.EMAIL_USER}>`,
+            to: participantEmail,
+            subject,
+            html: htmlContent,
+          });
+        }
+      };
 
-A new task has been assigned to you.
+      // 1️⃣ Send immediate email
+      const assignmentHtml = `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+          <h2 style="color: #4CAF50;">You Have a New Task!</h2>
+          <p>Hello,</p>
+          <p>A new task has been assigned to you. Here are the details:</p>
+          <table style="border-collapse: collapse; width: 100%; max-width: 500px;">
+            <tr><td style="padding: 8px; font-weight: bold; background-color: #f2f2f2;">Title:</td><td style="padding: 8px;">${newTask.title}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold; background-color: #f9f9f9;">Date:</td><td style="padding: 8px;">${newTask.date}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold; background-color: #f2f2f2;">Time:</td><td style="padding: 8px;">${newTask.time || "N/A"}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold; background-color: #f9f9f9;">Description:</td><td style="padding: 8px;">${newTask.description || "No description"}</td></tr>
+          </table>
+          <p style="margin-top: 20px;">Please make sure to complete it on time.</p>
+        </div>
+      `;
+      await sendEmail(`📝 New Task Assigned: ${newTask.title}`, assignmentHtml);
 
-Title: ${newTask.title}
-Date: ${newTask.date}
-Time: ${newTask.time || "N/A"}
-Category: ${newTask.category || "N/A"}
-Description: ${newTask.description || "No description"}
+      // 2️⃣ Schedule 15-minute reminder
+      if (newTask.time) {
+        const taskDateTime = new Date(`${newTask.date}T${newTask.time}`);
+        const now = new Date();
+        const delay = taskDateTime.getTime() - now.getTime() - 15 * 60 * 1000; // 15 mins before
 
-Please complete it on time.
-          `,
-        };
-
-        // Send the email
-        await transporter.sendMail(mailOptions);
+        if (delay > 0) {
+          setTimeout(async () => {
+            const reminderHtml = `
+              <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                <h2 style="color: #FF9800;">Task Reminder!</h2>
+                <p>Hello,</p>
+                <p>This is a reminder that your task <strong>${newTask.title}</strong> starts in 15 minutes.</p>
+                <table style="border-collapse: collapse; width: 100%; max-width: 500px;">
+                  <tr><td style="padding: 8px; font-weight: bold; background-color: #f2f2f2;">Title:</td><td style="padding: 8px;">${newTask.title}</td></tr>
+                  <tr><td style="padding: 8px; font-weight: bold; background-color: #f9f9f9;">Date:</td><td style="padding: 8px;">${newTask.date}</td></tr>
+                  <tr><td style="padding: 8px; font-weight: bold; background-color: #f2f2f2;">Time:</td><td style="padding: 8px;">${newTask.time}</td></tr>
+                  <tr><td style="padding: 8px; font-weight: bold; background-color: #f9f9f9;">Description:</td><td style="padding: 8px;">${newTask.description || "No description"}</td></tr>
+                </table>
+              </div>
+            `;
+            await sendEmail(`⏰ Reminder: ${newTask.title} in 15 minutes`, reminderHtml);
+          }, delay);
+        }
       }
     }
 
