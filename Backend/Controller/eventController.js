@@ -35,3 +35,21 @@ export const deleteEvent = async (req, res) => {
     res.status(500).json({ error: "Failed to delete event" });
   }
 };
+
+// ✅ Update/Edit Event
+export const updateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedEvent = await Event.findByIdAndUpdate(
+      id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    if (!updatedEvent) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+    res.status(200).json(updatedEvent);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update event" });
+  }
+};

@@ -1,5 +1,6 @@
 import Meeting from "../Models/meetingModels.js";
 
+
 // Create a new meeting
 export const createMeeting = async (req, res) => {
   try {
@@ -34,3 +35,22 @@ export const deleteMeeting = async (req, res) => {
     res.status(500).json({ error: "Failed to delete meeting" });
   }
 };
+
+// Update/Edit a meeting by ID
+export const updateMeeting = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedMeeting = await Meeting.findByIdAndUpdate(
+      id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    if (!updatedMeeting) {
+      return res.status(404).json({ error: "Meeting not found" });
+    }
+    res.status(200).json(updatedMeeting);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update meeting" });
+  }
+};
+
