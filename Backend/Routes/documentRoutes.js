@@ -1,25 +1,28 @@
+
 import express from "express";
 import multer from "multer";
-import { uploadDocuments, getUserDocuments } from "../Controller/documentController.js";
+import path from "path";
+import { uploadDocument, getAllDocuments } from "../Controller/documentController.js";
 
 const router = express.Router();
 
-// Configure multer
+// Multer setup
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/"); // make sure this folder exists
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
   },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`
+    );
   },
 });
 
 const upload = multer({ storage });
 
-/*
-  Upload documents:
-  - Expecting fields: aadhaarFront, aadhaarBack, pan
-*/
+// Routes
 router.post(
   "/upload",
   upload.fields([
@@ -27,10 +30,9 @@ router.post(
     { name: "aadhaarBack", maxCount: 1 },
     { name: "pan", maxCount: 1 },
   ]),
-  uploadDocuments
+  uploadDocument
 );
 
-// Get documents for a user
-router.get("/:userId", getUserDocuments);
+router.get("/", getAllDocuments);
 
 export default router;

@@ -1,11 +1,16 @@
+
+
 import mongoose from "mongoose";
 
-const DocumentSchema = new mongoose.Schema({
-  userId: { type: String, required: true }, // user identifier
-  aadhaarFront: { type: String, required: true },
-  aadhaarBack: { type: String, required: true },
-  pan: { type: String, required: true },
-  uploadedAt: { type: Date, default: Date.now },
-});
+const documentSchema = new mongoose.Schema(
+  {
+    userId: { type: String, required: true },
+    aadhaarFront: { type: String },
+    aadhaarBack: { type: String },
+    pan: { type: String },
+  },
+  { timestamps: true }
+);
 
-export default mongoose.models.Document || mongoose.model("Document", DocumentSchema);
+const Document = mongoose.model("Document", documentSchema);
+export default Document;

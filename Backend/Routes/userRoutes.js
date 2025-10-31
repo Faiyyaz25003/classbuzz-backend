@@ -6,8 +6,7 @@ import {
     toggleBlockUser,
     registerUser,
     loginUser,
-    getUsers,
-    createUser,
+
 
 } from "../Controller/userController.js";
 
@@ -20,7 +19,5 @@ router.patch("/:id/block", toggleBlockUser); // block/unblock user
 router.post("/login", loginUser); // login route
 
 
-router.get("/", getUsers);
-router.post("/", createUser);
 
 export default router;
