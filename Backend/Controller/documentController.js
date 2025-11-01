@@ -1,63 +1,120 @@
 
-import Document from "../Models/documentModel.js";
+import fs from "fs";
 import path from "path";
+import Document from "../Models/documentModel.js";
 
 export const uploadDocument = async (req, res) => {
   try {
     const { userId } = req.body;
-    if (!userId) {
-      return res.status(400).json({ message: "User ID is required" });
+    if (!userId) return res.status(400).json({ message: "User ID required" });
+
+    const aadhaarFront = req.files?.aadhaarFront?.[0]?.filename || null;
+    const aadhaarBack = req.files?.aadhaarBack?.[0]?.filename || null;
+    const pan = req.files?.pan?.[0]?.filename || null;
+
+    // ✅ Find existing record for this user
+    let document = await Document.findOne({ userId });
+
+    if (document) {
+      // ✅ Update only changed files
+      if (aadhaarFront) document.aadhaarFront = aadhaarFront;
+      if (aadhaarBack) document.aadhaarBack = aadhaarBack;
+      if (pan) document.pan = pan;
+      await document.save();
+    } else {
+      // ✅ Create new if not exist
+      document = new Document({
+        userId,
+        aadhaarFront,
+        aadhaarBack,
+        pan,
+      });
+      await document.save();
     }
 
-    // Find existing document or create new one
-    let document = await Document.findOne({ userId });
-    if (!document) document = new Document({ userId });
-
-    // Update file paths
-    if (req.files.aadhaarFront)
-      document.aadhaarFront = req.files.aadhaarFront[0].path;
-    if (req.files.aadhaarBack)
-      document.aadhaarBack = req.files.aadhaarBack[0].path;
-    if (req.files.pan)
-      document.pan = req.files.pan[0].path;
-
-    await document.save();
-
-    // Full URLs for frontend preview
-    const baseUrl = `${req.protocol}://${req.get("host")}/`;
-    const addFullPath = (filePath) => (filePath ? baseUrl + filePath : null);
-
     res.status(200).json({
-      message: "✅ Document uploaded successfully",
-      data: {
-        ...document.toObject(),
-        aadhaarFront: addFullPath(document.aadhaarFront),
-        aadhaarBack: addFullPath(document.aadhaarBack),
-        pan: addFullPath(document.pan),
-      },
+      success: true,
+      message: "Document uploaded successfully",
+      data: document,
     });
   } catch (err) {
     console.error("Upload error:", err);
-    res.status(500).json({ message: "Error uploading document", error: err });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-// ✅ Get all documents
+// ✅ Fetch all users' documents (unique per user)
 export const getAllDocuments = async (req, res) => {
   try {
-    const documents = await Document.find();
+    const docs = await Document.find();
+    res.status(200).json(docs);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching documents" });
+  }
+};
 
-    const baseUrl = `${req.protocol}://${req.get("host")}/`;
-    const formatted = documents.map((doc) => ({
-      ...doc.toObject(),
-      aadhaarFront: doc.aadhaarFront ? baseUrl + doc.aadhaarFront : null,
-      aadhaarBack: doc.aadhaarBack ? baseUrl + doc.aadhaarBack : null,
-      pan: doc.pan ? baseUrl + doc.pan : null,
-    }));
+// ✅ Delete a document by userId
+export const deleteDocument = async (req, res) => {
+  try {
+    const { userId } = req.params;
 
-    res.status(200).json(formatted);
-  } catch (error) {
-    console.error("Fetch error:", error);
-    res.status(500).json({ message: "Error fetching all documents", error });
+    // Validation
+    if (!userId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "User ID is required" 
+      });
+    }
+
+    // Find document
+    const document = await Document.findOne({ userId });
+    if (!document) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Document not found for this user" 
+      });
+    }
+
+    // ✅ Delete files from /uploads folder
+    const uploadPath = path.join(process.cwd(), "uploads");
+    
+    const deleteFile = (fileName) => {
+      if (fileName) {
+        try {
+          const filePath = path.join(uploadPath, fileName);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log(`✅ Deleted file: ${fileName}`);
+          }
+        } catch (fileErr) {
+          console.error(`⚠️ Error deleting file ${fileName}:`, fileErr);
+          // Continue execution even if file deletion fails
+        }
+      }
+    };
+
+    // Delete all document files
+    deleteFile(document.aadhaarFront);
+    deleteFile(document.aadhaarBack);
+    deleteFile(document.pan);
+
+    // ✅ Delete MongoDB record
+    await Document.deleteOne({ userId });
+
+    console.log(`✅ Document deleted for userId: ${userId}`);
+
+    res.status(200).json({
+      success: true,
+      message: "Document and associated files deleted successfully",
+      deletedUserId: userId,
+    });
+
+  } catch (err) {
+    console.error("❌ Delete error:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error while deleting document",
+      error: err.message 
+    });
   }
 };
