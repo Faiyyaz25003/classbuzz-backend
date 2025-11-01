@@ -7,6 +7,8 @@ import {
   uploadDocuments,
   getAllDocuments,
   downloadDocument,
+  acceptDocuments,
+  rejectDocuments,
 } from "../Controller/documentController.js";
 
 const router = express.Router();
@@ -36,6 +38,10 @@ router.get("/", getAllDocuments);
 
 // Download file
 router.get("/download/:id/:field", downloadDocument);
+
+// 🆕 Accept/Reject Routes
+router.post("/documents/accept/:id", acceptDocuments);
+router.post("/documents/reject/:id", rejectDocuments);
 
 
 export default router;
