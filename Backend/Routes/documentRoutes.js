@@ -1,31 +1,30 @@
-// routes/documentRoutes.js
-import express from 'express';
-import {
-  uploadDocuments,
-  getUserDocuments,
-  getDocumentById,
-  deleteDocument,
-  getAllUsersDocuments,
-  downloadDocument
-} from "../Controller/documentController.js";
+import express from "express";
+import multer from "multer";
+import path from "path";
+import { fileURLToPath } from "url";
+import { uploadDocuments, getAllDocuments } from "../Controller/documentController.js";
+
 const router = express.Router();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Upload documents (unlimited files)
-router.post('/upload', uploadDocuments);
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+});
 
-// Get all documents for a specific user
-router.get('/user/:userId', getUserDocuments);
+const upload = multer({ storage });
 
-// Get single document by ID
-router.get('/:documentId', getDocumentById);
+router.post(
+  "/upload",
+  upload.fields([
+    { name: "aadhaar", maxCount: 1 },
+    { name: "marksheet", maxCount: 1 },
+    { name: "photo", maxCount: 1 },
+  ]),
+  uploadDocuments
+);
 
-// Delete document
-router.delete('/:documentId', deleteDocument);
-
-// Get all users with their documents (admin view)
-router.get('/admin/all-users', getAllUsersDocuments);
-
-// Download document
-router.get('/download/:documentId', downloadDocument);
+router.get("/", getAllDocuments);
 
 export default router;
