@@ -1,120 +1,270 @@
-
-import fs from "fs";
-import path from "path";
+// controllers/documentController.js
 import Document from "../Models/documentModel.js";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-export const uploadDocument = async (req, res) => {
-  try {
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ message: "User ID required" });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-    const aadhaarFront = req.files?.aadhaarFront?.[0]?.filename || null;
-    const aadhaarBack = req.files?.aadhaarBack?.[0]?.filename || null;
-    const pan = req.files?.pan?.[0]?.filename || null;
+// Multer configuration for file upload
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = 'uploads/documents';
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
 
-    // ✅ Find existing record for this user
-    let document = await Document.findOne({ userId });
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|pdf/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
 
-    if (document) {
-      // ✅ Update only changed files
-      if (aadhaarFront) document.aadhaarFront = aadhaarFront;
-      if (aadhaarBack) document.aadhaarBack = aadhaarBack;
-      if (pan) document.pan = pan;
-      await document.save();
-    } else {
-      // ✅ Create new if not exist
-      document = new Document({
-        userId,
-        aadhaarFront,
-        aadhaarBack,
-        pan,
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Only images (jpeg, jpg, png) and PDF files are allowed!'));
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: fileFilter
+}).any(); // Accept any number of files
+
+// Upload documents (unlimited files)
+export const uploadDocuments = async (req, res) => {
+  upload(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Multer error: ${err.message}` 
       });
-      await document.save();
+    } else if (err) {
+      return res.status(400).json({ 
+        success: false, 
+        message: err.message 
+      });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Document uploaded successfully",
-      data: document,
-    });
-  } catch (err) {
-    console.error("Upload error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+    try {
+      const { userId } = req.body;
+
+      if (!userId) {
+        // Delete uploaded files if userId is missing
+        if (req.files) {
+          req.files.forEach(file => fs.unlinkSync(file.path));
+        }
+        return res.status(400).json({ 
+          success: false, 
+          message: 'User ID is required' 
+        });
+      }
+
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'No files uploaded' 
+        });
+      }
+
+      // Save each document to database
+      const uploadedDocs = [];
+      for (const file of req.files) {
+        const document = new Document({
+          userId,
+          documentType: file.fieldname,
+          fileName: file.filename,
+          originalName: file.originalname,
+          filePath: file.path,
+          fileSize: file.size,
+          mimeType: file.mimetype
+        });
+
+        const savedDoc = await document.save();
+        uploadedDocs.push(savedDoc);
+      }
+
+      res.status(201).json({
+        success: true,
+        message: `${uploadedDocs.length} document(s) uploaded successfully`,
+        documents: uploadedDocs
+      });
+
+    } catch (error) {
+      // Delete uploaded files if database save fails
+      if (req.files) {
+        req.files.forEach(file => {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+      }
+      
+      res.status(500).json({ 
+        success: false, 
+        message: 'Server error during upload',
+        error: error.message 
+      });
+    }
+  });
 };
 
-// ✅ Fetch all users' documents (unique per user)
-export const getAllDocuments = async (req, res) => {
-  try {
-    const docs = await Document.find();
-    res.status(200).json(docs);
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching documents" });
-  }
-};
-
-// ✅ Delete a document by userId
-export const deleteDocument = async (req, res) => {
+// Get all documents for a user
+export const getUserDocuments = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Validation
-    if (!userId) {
-      return res.status(400).json({ 
-        success: false,
-        message: "User ID is required" 
-      });
-    }
-
-    // Find document
-    const document = await Document.findOne({ userId });
-    if (!document) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Document not found for this user" 
-      });
-    }
-
-    // ✅ Delete files from /uploads folder
-    const uploadPath = path.join(process.cwd(), "uploads");
-    
-    const deleteFile = (fileName) => {
-      if (fileName) {
-        try {
-          const filePath = path.join(uploadPath, fileName);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-            console.log(`✅ Deleted file: ${fileName}`);
-          }
-        } catch (fileErr) {
-          console.error(`⚠️ Error deleting file ${fileName}:`, fileErr);
-          // Continue execution even if file deletion fails
-        }
-      }
-    };
-
-    // Delete all document files
-    deleteFile(document.aadhaarFront);
-    deleteFile(document.aadhaarBack);
-    deleteFile(document.pan);
-
-    // ✅ Delete MongoDB record
-    await Document.deleteOne({ userId });
-
-    console.log(`✅ Document deleted for userId: ${userId}`);
+    const documents = await Document.find({ userId }).sort({ uploadedAt: -1 });
 
     res.status(200).json({
       success: true,
-      message: "Document and associated files deleted successfully",
-      deletedUserId: userId,
+      count: documents.length,
+      documents
     });
 
-  } catch (err) {
-    console.error("❌ Delete error:", err);
+  } catch (error) {
     res.status(500).json({ 
-      success: false,
-      message: "Server error while deleting document",
-      error: err.message 
+      success: false, 
+      message: 'Error fetching documents',
+      error: error.message 
+    });
+  }
+};
+
+// Get single document by ID
+export const getDocumentById = async (req, res) => {
+  try {
+    const { documentId } = req.params;
+
+    const document = await Document.findById(documentId);
+
+    if (!document) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Document not found' 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      document
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching document',
+      error: error.message 
+    });
+  }
+};
+
+// Delete document
+export const deleteDocument = async (req, res) => {
+  try {
+    const { documentId } = req.params;
+
+    const document = await Document.findById(documentId);
+
+    if (!document) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Document not found' 
+      });
+    }
+
+    // Delete file from filesystem
+    if (fs.existsSync(document.filePath)) {
+      fs.unlinkSync(document.filePath);
+    }
+
+    // Delete from database
+    await Document.findByIdAndDelete(documentId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Document deleted successfully'
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error deleting document',
+      error: error.message 
+    });
+  }
+};
+
+// Get all users with their documents
+export const getAllUsersDocuments = async (req, res) => {
+  try {
+    const documents = await Document.aggregate([
+      {
+        $group: {
+          _id: '$userId',
+          totalDocuments: { $sum: 1 },
+          documents: { $push: '$$ROOT' },
+          lastUpload: { $max: '$uploadedAt' }
+        }
+      },
+      {
+        $sort: { lastUpload: -1 }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      totalUsers: documents.length,
+      users: documents
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching users documents',
+      error: error.message 
+    });
+  }
+};
+
+// Download document
+export const downloadDocument = async (req, res) => {
+  try {
+    const { documentId } = req.params;
+
+    const document = await Document.findById(documentId);
+
+    if (!document) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Document not found' 
+      });
+    }
+
+    if (!fs.existsSync(document.filePath)) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'File not found on server' 
+      });
+    }
+
+    res.download(document.filePath, document.originalName);
+
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error downloading document',
+      error: error.message 
     });
   }
 };
