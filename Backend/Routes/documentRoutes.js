@@ -6,12 +6,11 @@ import { fileURLToPath } from "url";
 import {
   uploadDocuments,
   getAllDocuments,
-  deleteDocument,
-  deleteUserRecord,
   downloadDocument,
 } from "../Controller/documentController.js";
 
 const router = express.Router();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -19,9 +18,9 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
   filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
 });
-
 const upload = multer({ storage });
 
+// Upload new
 router.post(
   "/upload",
   upload.fields([
@@ -32,16 +31,11 @@ router.post(
   uploadDocuments
 );
 
-// ✅ Fetch all uploaded documents
+// Get all
 router.get("/", getAllDocuments);
 
-// ✅ Download a specific file (aadhaar/marksheet/photo)
+// Download file
 router.get("/download/:id/:field", downloadDocument);
 
-// ✅ Delete a specific file from a user's record
-router.delete("/delete/:id/:field", deleteDocument);
-
-// ✅ Delete entire user record + all files
-router.delete("/:id", deleteUserRecord);
 
 export default router;

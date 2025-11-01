@@ -30,47 +30,6 @@ export const getAllDocuments = async (req, res) => {
 };
 
 
-// ✅ Delete a single field (aadhaar, marksheet, photo)
-export const deleteDocument = async (req, res) => {
-  try {
-    const { id, field } = req.params;
-    const doc = await Document.findById(id);
-    if (!doc) return res.status(404).json({ message: "Document not found" });
-
-    const filePath = doc[field];
-    if (filePath) {
-      const fullPath = path.join(__dirname, "../uploads", path.basename(filePath));
-      if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
-    }
-
-    doc[field] = null;
-    await doc.save();
-    res.json({ message: `${field} deleted successfully` });
-  } catch (err) {
-    res.status(500).json({ message: "Error deleting document" });
-  }
-};
-
-// ✅ Delete entire user record
-export const deleteUserRecord = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const doc = await Document.findById(id);
-    if (!doc) return res.status(404).json({ message: "User not found" });
-
-    const files = [doc.aadhaar, doc.marksheet, doc.photo].filter(Boolean);
-    for (const file of files) {
-      const fullPath = path.join(__dirname, "../uploads", path.basename(file));
-      if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
-    }
-
-    await Document.findByIdAndDelete(id);
-    res.json({ message: "User deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Error deleting user record" });
-  }
-};
-
 // ✅ Download document
 export const downloadDocument = async (req, res) => {
   try {
@@ -84,3 +43,6 @@ export const downloadDocument = async (req, res) => {
     res.status(500).json({ message: "Error downloading file" });
   }
 };
+
+
+
