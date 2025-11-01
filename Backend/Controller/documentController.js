@@ -28,3 +28,48 @@ export const getAllDocuments = async (req, res) => {
     res.status(500).json({ message: "Error fetching documents" });
   }
 };
+
+
+// 🗑️ Delete Specific Document (by ID + file type)
+export const deleteDocument = async (req, res) => {
+  try {
+    const { id, field } = req.params; // e.g. /api/documents/:id/:field
+    const doc = await Document.findById(id);
+
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    const filePath = doc[field];
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath); // delete file from folder
+    }
+
+    // Set the field to null
+    doc[field] = null;
+    await doc.save();
+
+    res.json({ message: `${field} deleted successfully` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error deleting document" });
+  }
+};
+
+// 📥 Download Specific Document (by ID + file type)
+export const downloadDocument = async (req, res) => {
+  try {
+    const { id, field } = req.params; // e.g. /api/documents/download/:id/:field
+    const doc = await Document.findById(id);
+
+    if (!doc || !doc[field]) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    const filePath = path.resolve(doc[field]);
+    res.download(filePath, path.basename(filePath)); // download file
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error downloading file" });
+  }
+};
