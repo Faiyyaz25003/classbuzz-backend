@@ -1,9 +1,15 @@
+
 import express from "express";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
-import { uploadDocuments, getAllDocuments ,  deleteDocument,
-  downloadDocument,} from "../Controller/documentController.js";
+import {
+  uploadDocuments,
+  getAllDocuments,
+  deleteDocument,
+  deleteUserRecord,
+  downloadDocument,
+} from "../Controller/documentController.js";
 
 const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
@@ -26,8 +32,16 @@ router.post(
   uploadDocuments
 );
 
+// ✅ Fetch all uploaded documents
 router.get("/", getAllDocuments);
-router.delete("/:id/:field", deleteDocument);
+
+// ✅ Download a specific file (aadhaar/marksheet/photo)
 router.get("/download/:id/:field", downloadDocument);
+
+// ✅ Delete a specific file from a user's record
+router.delete("/delete/:id/:field", deleteDocument);
+
+// ✅ Delete entire user record + all files
+router.delete("/:id", deleteUserRecord);
 
 export default router;

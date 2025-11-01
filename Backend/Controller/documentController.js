@@ -30,46 +30,57 @@ export const getAllDocuments = async (req, res) => {
 };
 
 
-// 🗑️ Delete Specific Document (by ID + file type)
+// ✅ Delete a single field (aadhaar, marksheet, photo)
 export const deleteDocument = async (req, res) => {
   try {
-    const { id, field } = req.params; // e.g. /api/documents/:id/:field
+    const { id, field } = req.params;
     const doc = await Document.findById(id);
-
-    if (!doc) {
-      return res.status(404).json({ message: "Document not found" });
-    }
+    if (!doc) return res.status(404).json({ message: "Document not found" });
 
     const filePath = doc[field];
-    if (filePath && fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath); // delete file from folder
+    if (filePath) {
+      const fullPath = path.join(__dirname, "../uploads", path.basename(filePath));
+      if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
     }
 
-    // Set the field to null
     doc[field] = null;
     await doc.save();
-
     res.json({ message: `${field} deleted successfully` });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
     res.status(500).json({ message: "Error deleting document" });
   }
 };
 
-// 📥 Download Specific Document (by ID + file type)
-export const downloadDocument = async (req, res) => {
+// ✅ Delete entire user record
+export const deleteUserRecord = async (req, res) => {
   try {
-    const { id, field } = req.params; // e.g. /api/documents/download/:id/:field
+    const { id } = req.params;
     const doc = await Document.findById(id);
+    if (!doc) return res.status(404).json({ message: "User not found" });
 
-    if (!doc || !doc[field]) {
-      return res.status(404).json({ message: "File not found" });
+    const files = [doc.aadhaar, doc.marksheet, doc.photo].filter(Boolean);
+    for (const file of files) {
+      const fullPath = path.join(__dirname, "../uploads", path.basename(file));
+      if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
     }
 
-    const filePath = path.resolve(doc[field]);
-    res.download(filePath, path.basename(filePath)); // download file
-  } catch (error) {
-    console.error(error);
+    await Document.findByIdAndDelete(id);
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting user record" });
+  }
+};
+
+// ✅ Download document
+export const downloadDocument = async (req, res) => {
+  try {
+    const { id, field } = req.params;
+    const doc = await Document.findById(id);
+    if (!doc || !doc[field]) return res.status(404).json({ message: "File not found" });
+
+    const filePath = path.join(__dirname, "../uploads", path.basename(doc[field]));
+    res.download(filePath);
+  } catch (err) {
     res.status(500).json({ message: "Error downloading file" });
   }
 };
