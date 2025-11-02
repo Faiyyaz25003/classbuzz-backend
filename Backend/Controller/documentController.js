@@ -1,6 +1,5 @@
 
 
-
 import Document from "../Models/documentModel.js";
 import path from "path";
 import fs from "fs";
@@ -15,6 +14,7 @@ export const uploadDocuments = async (req, res) => {
       aadhaar: files.aadhaar ? files.aadhaar[0].path : null,
       marksheet: files.marksheet ? files.marksheet[0].path : null,
       photo: files.photo ? files.photo[0].path : null,
+      status: "pending",
     });
 
     await newDoc.save();
@@ -107,78 +107,50 @@ export const deleteUser = async (req, res) => {
   }
 };
 
-// ✅ Accept documents
-export const acceptDocuments = async (req, res) => {
+// ✅ Accept Document
+export const acceptDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const doc = await Document.findById(id);
+    const document = await Document.findById(id);
 
-    if (!doc) 
-      return res.status(404).json({ message: "User not found" });
-
-    // Check if all documents are present
-    if (!doc.aadhaar || !doc.marksheet || !doc.photo) {
-      return res.status(400).json({ 
-        message: "Cannot accept: All documents are required",
-        missing: {
-          aadhaar: !doc.aadhaar,
-          marksheet: !doc.marksheet,
-          photo: !doc.photo
-        }
-      });
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
     }
 
-    // Update status to accepted
-    doc.status = "accepted";
-    doc.acceptedAt = new Date();
-    await doc.save();
+    // Check if all documents are uploaded
+    if (!document.aadhaar || !document.marksheet || !document.photo) {
+      return res.status(400).json({ message: "All documents must be uploaded before accepting" });
+    }
 
-    res.json({ 
-      message: "Documents accepted successfully",
-      user: {
-        id: doc._id,
-        name: doc.name,
-        status: doc.status,
-        acceptedAt: doc.acceptedAt
-      }
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error accepting documents" });
+    document.status = "accepted";
+    await document.save();
+
+    res.status(200).json({ message: "Documents accepted successfully", document });
+  } catch (error) {
+    console.error("Error accepting document:", error);
+    res.status(500).json({ message: "Server error while accepting document" });
   }
 };
 
-// ❌ Reject documents
-export const rejectDocuments = async (req, res) => {
+// ❌ Reject Document
+export const rejectDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const { reason } = req.body; // Optional rejection reason
+    const { reason } = req.body;
     
-    const doc = await Document.findById(id);
+    const document = await Document.findById(id);
 
-    if (!doc) 
-      return res.status(404).json({ message: "User not found" });
-
-    // Update status to rejected
-    doc.status = "rejected";
-    doc.rejectedAt = new Date();
-    if (reason) {
-      doc.rejectionReason = reason;
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
     }
-    await doc.save();
 
-    res.json({ 
-      message: "Documents rejected successfully",
-      user: {
-        id: doc._id,
-        name: doc.name,
-        status: doc.status,
-        rejectedAt: doc.rejectedAt,
-        reason: reason || "No reason provided"
-      }
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error rejecting documents" });
+    document.status = "rejected";
+    document.rejectionReason = reason || "";
+    await document.save();
+
+    res.status(200).json({ message: "Documents rejected successfully", document });
+  } catch (error) {
+    console.error("Error rejecting document:", error);
+    res.status(500).json({ message: "Server error while rejecting document" });
   }
 };

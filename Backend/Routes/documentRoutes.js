@@ -1,4 +1,5 @@
 
+
 import express from "express";
 import multer from "multer";
 import path from "path";
@@ -7,8 +8,10 @@ import {
   uploadDocuments,
   getAllDocuments,
   downloadDocument,
-  acceptDocuments,
-  rejectDocuments,
+  deleteDocument,
+  deleteUser,
+  acceptDocument,
+  rejectDocument,
 } from "../Controller/documentController.js";
 
 const router = express.Router();
@@ -22,7 +25,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Upload new
+// Upload new documents
 router.post(
   "/upload",
   upload.fields([
@@ -33,15 +36,22 @@ router.post(
   uploadDocuments
 );
 
-// Get all
+// Get all documents
 router.get("/", getAllDocuments);
 
-// Download file
+// Download specific document
 router.get("/download/:id/:field", downloadDocument);
 
-// 🆕 Accept/Reject Routes
-router.post("/documents/accept/:id", acceptDocuments);
-router.post("/documents/reject/:id", rejectDocuments);
+// Delete specific document field
+router.delete("/delete/:id/:field", deleteDocument);
 
+// Delete entire user
+router.delete("/:id", deleteUser);
+
+// Accept documents
+router.post("/accept/:id", acceptDocument);
+
+// Reject documents
+router.post("/reject/:id", rejectDocument);
 
 export default router;
