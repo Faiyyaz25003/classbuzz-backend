@@ -4,6 +4,11 @@
 import mongoose from "mongoose";
 
 const documentSchema = new mongoose.Schema({
+   userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User", // This is the model name of your User schema
+    required: true,
+  },
   name: { type: String, required: true },
   aadhaar: String,
   marksheet: String,

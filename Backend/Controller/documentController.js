@@ -107,7 +107,7 @@ export const deleteUser = async (req, res) => {
   }
 };
 
-// ✅ Accept Document
+// // ✅ Accept Document
 export const acceptDocument = async (req, res) => {
   try {
     const { id } = req.params;
