@@ -19,6 +19,8 @@ import feeRoutes from "./routes/feeRoutes.js";
 import taskRoutes from "./Routes/taskRoutes.js";
 import eventRoutes from "./Routes/eventRoutes.js";
 import meetingRoutes from "./Routes/meetingRoutes.js";
+import certificateRoutes from "./Routes/certificateRoutes.js";
+
 
 dotenv.config();
 
@@ -74,6 +76,8 @@ app.use("/api/fees", feeRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/meetings", meetingRoutes);
+app.use("/api/certificates", certificateRoutes);
+
 
 // ============= Default Route =============
 app.get("/", (req, res) =>
