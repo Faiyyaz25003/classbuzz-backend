@@ -131,25 +131,69 @@ export const getAllUsers = async (req, res) => {
 };
 
 // 🔹 User login
+// export const loginUser = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     const user = await User.findOne({ email });
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     // ✅ Check if blocked
+//     if (user.isBlocked) {
+//       return res.status(403).json({ message: "Your account has been blocked by admin" });
+//     }
+
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch)
+//       return res.status(401).json({ message: "Invalid email or password" });
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Login successful",
+//       user: {
+//         id: user._id,
+//         name: user.name,
+//         email: user.email,
+//         positions: user.positions,
+//       },
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: "Login failed", error });
+//   }
+// };
+
+
+// 🔹 User login with JWT token generation
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // 1️⃣ Check if user exists
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ✅ Check if blocked
+    // 2️⃣ Check if blocked
     if (user.isBlocked) {
       return res.status(403).json({ message: "Your account has been blocked by admin" });
     }
 
+    // 3️⃣ Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid email or password" });
 
+    // 4️⃣ Generate JWT Token
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: "user" }, // payload
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" } // token valid for 7 days
+    );
+
+    // 5️⃣ Send success response
     res.status(200).json({
       success: true,
       message: "Login successful",
+      token, // send token to frontend
       user: {
         id: user._id,
         name: user.name,
@@ -158,9 +202,10 @@ export const loginUser = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: "Login failed", error });
+    res.status(500).json({ message: "Login failed", error: error.message });
   }
 };
+
 
 // 🔹 Get current logged-in user
 export const getCurrentUser = async (req, res) => {
