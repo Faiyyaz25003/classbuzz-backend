@@ -135,7 +135,6 @@ export const getFeesByUser = async (req, res) => {
 };
 
 // Get all fees of a specific user
-// Get all fees of a specific user
 export const getUserFees = async (req, res) => {
   try {
     const { userId } = req.params;
