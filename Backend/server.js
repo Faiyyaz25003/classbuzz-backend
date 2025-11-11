@@ -20,6 +20,7 @@ import taskRoutes from "./Routes/taskRoutes.js";
 import eventRoutes from "./Routes/eventRoutes.js";
 import meetingRoutes from "./Routes/meetingRoutes.js";
 import certificateRoutes from "./Routes/certificateRoutes.js";
+import resultRoutes from "./Routes/resultRoutes.js";
 
 
 dotenv.config();
@@ -77,6 +78,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/certificates", certificateRoutes);
+app.use("/api/results", resultRoutes);
 
 
 // ============= Default Route =============
