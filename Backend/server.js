@@ -10,7 +10,7 @@ import { fileURLToPath } from "url";
 import initializeWebSocket from "./socket/index.js";
 
 // ============= Routes =============
-import userRoutes from "./Routes/userRoutes.js";
+import userRoutes from "./Routes/userRoutes.js"
 import messageRoutes from "./Routes/messageRoutes.js";
 import leaveRoutes from "./routes/LeaveRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";

@@ -155,7 +155,7 @@ export const loginUser = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, email: user.email, role: "user" }, // payload
       process.env.JWT_SECRET,
-      { expiresIn: "7d" } // token valid for 7 days
+      { expiresIn: "10d" } // token valid for 7 days
     );
 
     // 5️⃣ Send success response
