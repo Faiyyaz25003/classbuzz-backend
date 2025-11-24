@@ -40,15 +40,20 @@ export const getAllResults = async (req, res) => {
 };
 
 // @desc Get single student result by rollNo
-export const getResultByRollNo = async (req, res) => {
+export const getResultById = async (req, res) => {
   try {
-    const result = await Result.findOne({ rollNo: req.params.rollNo });
-    if (!result) return res.status(404).json({ message: "Result not found" });
+    const result = await Result.findById(req.params.id);
+
+    if (!result) {
+      return res.status(404).json({ message: "Result not found" });
+    }
+
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Error fetching result" });
   }
 };
+
 
 // @desc Delete student result
 export const deleteResult = async (req, res) => {
