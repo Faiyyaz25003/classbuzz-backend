@@ -80,7 +80,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/results", resultRoutes);
-app.use("/api/courses", courseRoutes);
+app.use("/api/course", courseRoutes);
 
 
 // ============= Default Route =============
