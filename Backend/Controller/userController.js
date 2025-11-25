@@ -130,8 +130,6 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-
-
 // 🔹 User login with JWT token generation
 export const loginUser = async (req, res) => {
   try {
