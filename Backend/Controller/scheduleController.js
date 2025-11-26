@@ -1,4 +1,4 @@
-import Schedule from "../Models/scheduleModels.js";
+import Schedule from "../Models/scheduleModels"
 
 // CREATE & UPDATE timetable
 export const saveSchedule = async (req, res) => {
