@@ -1,10 +1,30 @@
+// import mongoose from "mongoose";
+
+// const scheduleSchema = new mongoose.Schema({
+//   courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
+//   semester: { type: Number, required: true },
+//   timetable: { type: Array, required: true },
+//   subjects: { type: Array, required: true },
+// });
+
+// export default mongoose.model("Schedule", scheduleSchema);
+
+
 import mongoose from "mongoose";
 
-const scheduleSchema = new mongoose.Schema({
+const timetableSchema = new mongoose.Schema({
   courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
   semester: { type: Number, required: true },
-  timetable: { type: Array, required: true },
-  subjects: { type: Array, required: true },
-});
+  startTime: { type: String, required: true },
+  endTime: { type: String, required: true },
+  slotDuration: { type: Number, required: true },
+  subjects: [
+    {
+      name: { type: String, required: true },
+      teacher: { type: String },
+    },
+  ],
+  timetable: { type: Array, default: [] }, // Array of days with slots
+}, { timestamps: true });
 
-export default mongoose.model("Schedule", scheduleSchema);
+export default mongoose.model("Schedule", timetableSchema);

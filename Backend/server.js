@@ -83,7 +83,6 @@ app.use("/api/results", resultRoutes);
 app.use("/api/course", courseRoutes);
 app.use("/api/schedule", scheduleRoutes);
 
-
 // ============= Default Route =============
 app.get("/", (req, res) =>
   res.send("✅ School Management Server running successfully...")
