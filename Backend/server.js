@@ -79,7 +79,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/certificates", certificateRoutes);
-app.use("/api/results", resultRoutes);
+app.use("/api/result", resultRoutes);
 app.use("/api/course", courseRoutes);
 app.use("/api/schedule", scheduleRoutes);
 

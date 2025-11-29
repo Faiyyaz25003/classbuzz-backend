@@ -1,16 +1,11 @@
+
 import express from "express";
-import {
-    addResult,
-    getAllResults,
-    getResultById,
-    deleteResult,
-} from "../Controller/resultController.js";
+import { createResult, getResultByRoll, getAllResults } from "../Controller/resultController.js";
 
 const router = express.Router();
 
-router.post("/", addResult); // Create new result
-router.get("/", getAllResults); // Get all results
-router.get("/:rollNo", getResultById); // Get result by roll number
-router.delete("/:id", deleteResult); // Delete result
+router.post("/", createResult);             // Submit result
+router.get("/", getAllResults);            // (optional) show all results
+router.get("/:roll", getResultByRoll);     // Search result by roll number
 
 export default router;
