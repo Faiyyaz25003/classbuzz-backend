@@ -23,6 +23,7 @@ import certificateRoutes from "./Routes/certificateRoutes.js";
 import resultRoutes from "./Routes/resultRoutes.js";
 import courseRoutes from "./Routes/courseRoutes.js";
 import scheduleRoutes from "./Routes/scheduleRoutes.js";
+import lectureRoutes from "./Routes/lectureRoutes.js";
 
 dotenv.config();
 
@@ -82,6 +83,7 @@ app.use("/api/certificates", certificateRoutes);
 app.use("/api/result", resultRoutes);
 app.use("/api/course", courseRoutes);
 app.use("/api/schedule", scheduleRoutes);
+app.use("/api/lectures", lectureRoutes);
 
 // ============= Default Route =============
 app.get("/", (req, res) =>
