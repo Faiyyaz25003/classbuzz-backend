@@ -13,7 +13,7 @@ import {
 const router = express.Router();
 
 // Add Fee
-router.post("/", addFee);
+router.post("/add", addFee);
 
 // Get All Fees
 router.get("/", getAllFees);

@@ -15,7 +15,7 @@ import messageRoutes from "./Routes/messageRoutes.js";
 import leaveRoutes from "./routes/LeaveRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 import documentRoutes from "./Routes/documentRoutes.js"; // ✅ Document Upload
-import feeRoutes from "./routes/feeRoutes.js";
+import feeRoutes from "./Routes/feeRoutes.js";
 import taskRoutes from "./Routes/taskRoutes.js";
 import eventRoutes from "./Routes/eventRoutes.js";
 import meetingRoutes from "./Routes/meetingRoutes.js";
@@ -75,7 +75,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/leave", leaveRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/documents", documentRoutes); // ✅ Student Document Upload API
-app.use("/api/fees", feeRoutes);
+app.use("/api/fees", feeRoutes); 
 app.use("/api/tasks", taskRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/meetings", meetingRoutes);
