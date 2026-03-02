@@ -1,33 +1,23 @@
-
-
 import express from "express";
 import {
   addFee,
   getAllFees,
-  getFeesByUser, // ✅ use correct name from controller
+  getFeesByUser,
   updateFee,
   deleteFee,
-  getUserFees // optional, but use different path if you need it
+  getUserFees,
 } from "../Controller/feeController.js";
 
 const router = express.Router();
 
-// Add Fee
+// ✅ Specific routes PEHLE rakhein — warna /:id inhe catch kar leta hai
 router.post("/add", addFee);
-
-// Get All Fees
 router.get("/", getAllFees);
+router.get("/user/:userId", getFeesByUser);       // ✅ Yeh /:id se UPAR hona chahiye
+router.get("/user-alt/:userId", getUserFees);
 
-// Get Fees by User
-router.get("/user/:userId", getFeesByUser); // ✅ changed path to avoid conflict
-
-// Optional: alternative fetch by user
-router.get("/user-alt/:userId", getUserFees); // use only if needed, different path
-
-// Update Fee
+// ✅ Generic :id routes BAAD mein
 router.put("/:id", updateFee);
-
-// Delete Fee
 router.delete("/:id", deleteFee);
 
 export default router;

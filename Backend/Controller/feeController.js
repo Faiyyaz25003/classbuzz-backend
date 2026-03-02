@@ -121,12 +121,16 @@ export const getAllFees = async (req, res) => {
 };
 
 // ✅ Get Fee by User
+// ✅ Get Fee by User - FIXED with populate
 export const getFeesByUser = async (req, res) => {
   try {
     const { userId } = req.params;
     if (!userId) return res.status(400).json({ message: "User ID is required" });
 
-    const fees = await Fee.find({ userId }).sort({ createdAt: -1 }); // latest first
+    const fees = await Fee.find({ userId })
+      .populate("userId", "name email phone departments positions") // ✅ populate added
+      .sort({ createdAt: -1 });
+
     res.status(200).json(fees);
   } catch (error) {
     console.error("Error fetching fees:", error);
