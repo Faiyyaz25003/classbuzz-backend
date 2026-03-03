@@ -1,57 +1,48 @@
-
-
 import express from "express";
 import multer from "multer";
-import path from "path";
-import { fileURLToPath } from "url";
 import {
   uploadDocuments,
   getAllDocuments,
-  downloadDocument,
-  deleteDocument,
-  deleteUser,
   acceptDocument,
   rejectDocument,
+  deleteDocument,
 } from "../Controller/documentController.js";
-
 const router = express.Router();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+// Multer setup
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
 });
 const upload = multer({ storage });
 
-// Upload new documents
+// Upload route with proper error handling
 router.post(
   "/upload",
-  upload.fields([
-    { name: "aadhaar", maxCount: 1 },
-    { name: "marksheet", maxCount: 1 },
-    { name: "photo", maxCount: 1 },
-  ]),
+  (req, res, next) => {
+    upload.fields([
+      { name: "aadhar", maxCount: 1 },
+      { name: "marksheet", maxCount: 1 },
+      { name: "photo", maxCount: 1 },
+      { name: "custom", maxCount: 20 },
+    ])(req, res, (err) => {
+      if (err) {
+        console.error("MULTER ERROR:", err);
+        return res.status(500).json({ message: "File upload error" });
+      }
+      next();
+    });
+  },
   uploadDocuments
 );
 
-// Get all documents
 router.get("/", getAllDocuments);
-
-// Download specific document
-router.get("/download/:id/:field", downloadDocument);
-
-// Delete specific document field
-router.delete("/delete/:id/:field", deleteDocument);
-
-// Delete entire user
-router.delete("/:id", deleteUser);
-
-// Accept documents
-router.post("/accept/:id", acceptDocument);
-
-// Reject documents
-router.post("/reject/:id", rejectDocument);
+router.patch("/accept/:id", acceptDocument);
+router.patch("/reject/:id", rejectDocument);
+router.delete("/:id", deleteDocument);
 
 export default router;

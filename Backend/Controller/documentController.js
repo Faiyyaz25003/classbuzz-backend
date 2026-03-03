@@ -1,156 +1,123 @@
-
-
 import Document from "../Models/documentModel.js";
-import path from "path";
 import fs from "fs";
+import path from "path";
+import nodemailer from "nodemailer";
 
-export const uploadDocuments = async (req, res) => {
+// Nodemailer setup (Gmail example)
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER, // Your Gmail email
+    pass: process.env.EMAIL_PASS, // App password or Gmail password
+  },
+});
+
+const sendEmail = async (to, subject, text) => {
   try {
-    const { name } = req.body;
-    const files = req.files;
-
-    const newDoc = new Document({
-      name,
-      aadhaar: files.aadhaar ? files.aadhaar[0].path : null,
-      marksheet: files.marksheet ? files.marksheet[0].path : null,
-      photo: files.photo ? files.photo[0].path : null,
-      status: "pending",
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to,
+      subject,
+      text,
     });
-
-    await newDoc.save();
-    res.json({ message: "Documents uploaded successfully" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Upload failed" });
+  } catch (err) {
+    console.error("Error sending email:", err);
   }
 };
 
+// Upload Documents
+export const uploadDocuments = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const files = req.files;
+
+    const doc = new Document({
+      userId,
+      aadhar: files.aadhar ? files.aadhar[0].path : "",
+      marksheet: files.marksheet ? files.marksheet[0].path : "",
+      photo: files.photo ? files.photo[0].path : "",
+      custom: files.custom ? files.custom.map((f) => f.path) : [],
+    });
+
+    await doc.save();
+    res.status(201).json(doc);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Get all documents
 export const getAllDocuments = async (req, res) => {
   try {
     const docs = await Document.find();
     res.json(docs);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching documents" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-// ✅ Download document
-export const downloadDocument = async (req, res) => {
-  try {
-    const { id, field } = req.params;
-    const doc = await Document.findById(id);
-    if (!doc || !doc[field]) 
-      return res.status(404).json({ message: "File not found" });
-
-    const filePath = path.join(process.cwd(), doc[field]);
-    res.download(filePath);
-  } catch (err) {
-    res.status(500).json({ message: "Error downloading file" });
-  }
-};
-
-// 🗑️ Delete specific document field
-export const deleteDocument = async (req, res) => {
-  try {
-    const { id, field } = req.params;
-    const doc = await Document.findById(id);
-    
-    if (!doc) 
-      return res.status(404).json({ message: "User not found" });
-
-    if (!doc[field]) 
-      return res.status(404).json({ message: "Document not found" });
-
-    // Delete file from filesystem
-    const filePath = path.join(process.cwd(), doc[field]);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
-    // Update database - set field to null
-    doc[field] = null;
-    await doc.save();
-
-    res.json({ message: `${field} deleted successfully` });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error deleting document" });
-  }
-};
-
-// 🗑️ Delete entire user record
-export const deleteUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const doc = await Document.findById(id);
-
-    if (!doc) 
-      return res.status(404).json({ message: "User not found" });
-
-    // Delete all files from filesystem
-    ["aadhaar", "marksheet", "photo"].forEach((field) => {
-      if (doc[field]) {
-        const filePath = path.join(process.cwd(), doc[field]);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      }
-    });
-
-    // Delete user from database
-    await Document.findByIdAndDelete(id);
-
-    res.json({ message: "User and all documents deleted successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error deleting user" });
-  }
-};
-
-// // ✅ Accept Document
+// Accept document
 export const acceptDocument = async (req, res) => {
   try {
-    const { id } = req.params;
-    const document = await Document.findById(id);
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      { status: "accepted" },
+      { new: true }
+    );
 
-    if (!document) {
-      return res.status(404).json({ message: "Document not found" });
-    }
+    // Send email to user
+    await sendEmail(
+      doc.userId, // assuming userId is the email
+      "Document Status Update ✅",
+      "Your document has been accepted by the admin."
+    );
 
-    // Check if all documents are uploaded
-    if (!document.aadhaar || !document.marksheet || !document.photo) {
-      return res.status(400).json({ message: "All documents must be uploaded before accepting" });
-    }
-
-    document.status = "accepted";
-    await document.save();
-
-    res.status(200).json({ message: "Documents accepted successfully", document });
+    res.json(doc);
   } catch (error) {
-    console.error("Error accepting document:", error);
-    res.status(500).json({ message: "Server error while accepting document" });
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-// ❌ Reject Document
+// Reject document
 export const rejectDocument = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { reason } = req.body;
-    
-    const document = await Document.findById(id);
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      { status: "rejected" },
+      { new: true }
+    );
 
-    if (!document) {
-      return res.status(404).json({ message: "Document not found" });
+    // Send email to user
+    await sendEmail(
+      doc.userId, // assuming userId is the email
+      "Document Status Update ❌",
+      "Your document has been rejected by the admin. Please review and resubmit."
+    );
+
+    res.json(doc);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Delete document
+export const deleteDocument = async (req, res) => {
+  try {
+    const doc = await Document.findByIdAndDelete(req.params.id);
+
+    // Delete files from uploads folder
+    if (doc) {
+      [doc.aadhar, doc.marksheet, doc.photo, ...doc.custom].forEach((file) => {
+        if (file && fs.existsSync(file)) fs.unlinkSync(file);
+      });
     }
 
-    document.status = "rejected";
-    document.rejectionReason = reason || "";
-    await document.save();
-
-    res.status(200).json({ message: "Documents rejected successfully", document });
+    res.json({ message: "Document deleted" });
   } catch (error) {
-    console.error("Error rejecting document:", error);
-    res.status(500).json({ message: "Server error while rejecting document" });
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 };
