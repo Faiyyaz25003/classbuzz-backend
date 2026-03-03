@@ -1,17 +1,47 @@
+
+
 import Document from "../Models/documentModel.js";
 import User from "../Models/UserModels.js";
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: "khanfaiyyaz25003@gmail.com",
+    pass: "jsylzpyjqvxzuhoe", // App Password (spaces hata diye)
   },
 });
 
-// ================== Upload Documents ==================
+transporter.verify((error) => {
+  if (error) {
+    console.error("❌ Email transporter error:", error.message);
+  } else {
+    console.log("✅ Email transporter ready — Gmail connected");
+  }
+});
 
+// ================== Helper: Send Email ==================
+// ✅ FIX 3: Email ko alag helper mein nikala — error se main response block na ho
+const sendEmail = async ({ to, subject, text }) => {
+  try {
+    const info = await transporter.sendMail({
+      from: `"School Admin" <${process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      text,
+    });
+    console.log("✅ Email sent:", info.messageId);
+    return true;
+  } catch (err) {
+    // ✅ Full error log karo — isse pata chalega exact problem
+    console.error("❌ Email send failed:", err.message);
+    return false;
+  }
+};
+
+// ================== Upload Documents ==================
 export const uploadDocuments = async (req, res) => {
   try {
     const { userId } = req.body;
@@ -22,10 +52,8 @@ export const uploadDocuments = async (req, res) => {
 
     const uploadedDocs = [];
 
-    // ✅ FIX: req.files ab array hai (upload.any() se), object nahi
     for (const file of req.files) {
-      // file.fieldname = "file_0", "file_1", etc.
-      const index = file.fieldname.replace("file_", ""); // "0", "1", ...
+      const index = file.fieldname.replace("file_", "");
       const docName = req.body[`name_${index}`] || file.originalname;
 
       const newDoc = await Document.create({
@@ -42,24 +70,23 @@ export const uploadDocuments = async (req, res) => {
       data: uploadedDocs,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Upload error:", error);
     res.status(500).json({ message: "Upload Failed" });
   }
 };
 
 // ================== Get All Documents ==================
-
 export const getAllDocuments = async (req, res) => {
   try {
     const docs = await Document.find().populate("user");
     res.json(docs);
   } catch (error) {
+    console.error("Fetch error:", error);
     res.status(500).json({ message: "Fetch Failed" });
   }
 };
 
 // ================== Accept Document ==================
-
 export const acceptDocument = async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id).populate("user");
@@ -68,21 +95,25 @@ export const acceptDocument = async (req, res) => {
     doc.status = "accepted";
     await doc.save();
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    // ✅ FIX 4: Email fail hone par bhi response bhejo — dono independent hain
+    const emailSent = await sendEmail({
       to: doc.user.email,
       subject: "Document Accepted ✅",
-      text: `Hello ${doc.user.name}, your document "${doc.name}" has been accepted.`,
+      text: `Hello ${doc.user.name},\n\nYour document "${doc.name}" has been accepted.\n\nRegards,\nSchool Admin`,
     });
 
-    res.json({ message: "Document Accepted & Email Sent" });
+    res.json({
+      message: emailSent
+        ? "Document Accepted & Email Sent"
+        : "Document Accepted (Email failed — check server logs)",
+    });
   } catch (error) {
+    console.error("Accept error:", error);
     res.status(500).json({ message: "Accept Failed" });
   }
 };
 
 // ================== Reject Document ==================
-
 export const rejectDocument = async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id).populate("user");
@@ -91,26 +122,30 @@ export const rejectDocument = async (req, res) => {
     doc.status = "rejected";
     await doc.save();
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const emailSent = await sendEmail({
       to: doc.user.email,
       subject: "Document Rejected ❌",
-      text: `Hello ${doc.user.name}, your document "${doc.name}" has been rejected.`,
+      text: `Hello ${doc.user.name},\n\nYour document "${doc.name}" has been rejected. Please re-upload a valid document.\n\nRegards,\nSchool Admin`,
     });
 
-    res.json({ message: "Document Rejected & Email Sent" });
+    res.json({
+      message: emailSent
+        ? "Document Rejected & Email Sent"
+        : "Document Rejected (Email failed — check server logs)",
+    });
   } catch (error) {
+    console.error("Reject error:", error);
     res.status(500).json({ message: "Reject Failed" });
   }
 };
 
 // ================== Delete Document ==================
-
 export const deleteDocument = async (req, res) => {
   try {
     await Document.findByIdAndDelete(req.params.id);
     res.json({ message: "Document Deleted Successfully" });
   } catch (error) {
+    console.error("Delete error:", error);
     res.status(500).json({ message: "Delete Failed" });
   }
 };
