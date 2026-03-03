@@ -74,7 +74,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/leave", leaveRoutes);
 app.use("/api/attendance", attendanceRoutes);
-app.use("/api/documents", documentRoutes); // ✅ Student Document Upload API
+app.use("/api/documents", documentRoutes);
 app.use("/api/fees", feeRoutes); 
 app.use("/api/tasks", taskRoutes);
 app.use("/api/events", eventRoutes);
