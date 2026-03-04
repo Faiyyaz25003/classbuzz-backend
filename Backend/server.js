@@ -24,6 +24,7 @@ import resultRoutes from "./Routes/resultRoutes.js";
 import courseRoutes from "./Routes/courseRoutes.js";
 import scheduleRoutes from "./Routes/scheduleRoutes.js";
 import lectureRoutes from "./Routes/lectureRoutes.js";
+import gameRoutes from "./Routes/gameRoutes.js";
 
 dotenv.config();
 
@@ -84,6 +85,7 @@ app.use("/api/result", resultRoutes);
 app.use("/api/course", courseRoutes);
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/lectures", lectureRoutes);
+app.use("/api/games", gameRoutes);
 
 // ============= Default Route =============
 app.get("/", (req, res) =>
