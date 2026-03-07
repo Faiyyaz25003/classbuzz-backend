@@ -27,6 +27,7 @@ import lectureRoutes from "./Routes/lectureRoutes.js";
 import gameRoutes from "./Routes/gameRoutes.js";
 import folderRoutes from "./Routes/folderRoutes.js";
 import assignmentRoutes from "./Routes/assignmentRoutes.js";
+import examRoutes from "./Routes/examTimetableRoutes.js";
 
 dotenv.config();
 
@@ -90,6 +91,7 @@ app.use("/api/lectures", lectureRoutes);
 app.use("/api/games", gameRoutes);
 app.use("/api/folders", folderRoutes);
 app.use("/api/assignments", assignmentRoutes);
+app.use("/api/exam-timetable", examRoutes);
 app.use("/uploads", express.static("uploads"));
 // ============= Default Route =============
 app.get("/", (req, res) =>
