@@ -16,6 +16,7 @@ export const initializeWebSocket = (server) => {
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
+    // User joins — register in activeUsers map
     socket.on("user:join", (userId) => {
       if (!userId) return;
       activeUsers.set(userId.toString(), socket.id);
@@ -24,11 +25,12 @@ export const initializeWebSocket = (server) => {
       console.log(`User ${userId} joined with socket ${socket.id}`);
     });
 
+    // Send a message
     socket.on("message:send", async (data) => {
       try {
         const { senderId, receiverId, text, messageType, fileUrl, fileName } = data;
 
-        // create message
+        // 1. Save message to DB
         const message = await Message.create({
           sender: senderId,
           receiver: receiverId,
@@ -39,7 +41,7 @@ export const initializeWebSocket = (server) => {
           status: "sent",
         });
 
-        // find or create conversation
+        // 2. Find or create conversation
         let conversation = await Conversation.findOne({
           participants: { $all: [senderId, receiverId] },
           isGroup: false,
@@ -58,7 +60,10 @@ export const initializeWebSocket = (server) => {
         } else {
           conversation.lastMessage = message._id;
           conversation.lastMessageTime = new Date();
-          const receiverUnread = conversation.unreadCount.find(u => u.userId.toString() === receiverId.toString());
+
+          const receiverUnread = conversation.unreadCount.find(
+            (u) => u.userId.toString() === receiverId.toString()
+          );
           if (receiverUnread) {
             receiverUnread.count = (receiverUnread.count || 0) + 1;
           } else {
@@ -67,10 +72,9 @@ export const initializeWebSocket = (server) => {
           await conversation.save();
         }
 
-        // send to receiver if online
+        // 3. If receiver is online → deliver immediately
         const receiverSocketId = activeUsers.get(receiverId.toString());
         if (receiverSocketId) {
-          // update delivered status
           message.status = "delivered";
           message.deliveredTo.push({ userId: receiverId });
           await message.save();
@@ -81,58 +85,69 @@ export const initializeWebSocket = (server) => {
           });
         }
 
-        // notify sender (ack)
+        // 4. Acknowledge sender
         socket.emit("message:sent", {
           message,
           conversationId: conversation._id,
         });
-
       } catch (error) {
-        console.error("Error in message:send", error);
+        console.error("Error in message:send:", error);
         socket.emit("message:error", { error: error.message });
       }
     });
 
+    // Mark a single message as read
     socket.on("message:read", async ({ messageId, userId }) => {
       try {
         const message = await Message.findById(messageId);
         if (!message) return;
-        if (!message.readBy.some(r => r.userId.toString() === userId.toString())) {
+
+        // Add to readBy if not already there
+        if (!message.readBy.some((r) => r.userId.toString() === userId.toString())) {
           message.readBy.push({ userId });
         }
         message.isRead = true;
         message.status = "read";
         await message.save();
 
-        // notify sender
+        // Notify the original sender
         const senderSocket = activeUsers.get(message.sender.toString());
         if (senderSocket) {
           io.to(senderSocket).emit("message:read", { messageId, userId });
         }
 
-        // update conversation unread counts
-        const conv = await Conversation.findOne({ participants: { $all: [message.sender, message.receiver] }});
+        // Decrement unread count in conversation
+        const conv = await Conversation.findOne({
+          participants: { $all: [message.sender, message.receiver] },
+        });
         if (conv) {
-          const u = conv.unreadCount.find(u => u.userId.toString() === userId.toString());
+          const u = conv.unreadCount.find(
+            (u) => u.userId.toString() === userId.toString()
+          );
           if (u) u.count = Math.max(0, u.count - 1);
           await conv.save();
         }
       } catch (err) {
-        console.error("message:read error", err);
+        console.error("message:read error:", err);
       }
     });
 
-    // typing indicators
+    // Typing indicators
     socket.on("typing:start", ({ senderId, receiverId }) => {
       const receiverSocket = activeUsers.get(receiverId.toString());
-      if (receiverSocket) io.to(receiverSocket).emit("typing:start", { userId: senderId });
+      if (receiverSocket) {
+        io.to(receiverSocket).emit("typing:start", { userId: senderId });
+      }
     });
 
     socket.on("typing:stop", ({ senderId, receiverId }) => {
       const receiverSocket = activeUsers.get(receiverId.toString());
-      if (receiverSocket) io.to(receiverSocket).emit("typing:stop", { userId: senderId });
+      if (receiverSocket) {
+        io.to(receiverSocket).emit("typing:stop", { userId: senderId });
+      }
     });
 
+    // Disconnect — clean up activeUsers
     socket.on("disconnect", () => {
       if (socket.userId) {
         activeUsers.delete(socket.userId);
