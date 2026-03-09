@@ -126,5 +126,3 @@ export const searchMessages = async (req, res) => {
   }
 };
 
-// ✅ REMOVED: getMessagesBetweenUsers
-//    It was a duplicate of getMessages and was never reachable due to route conflict.
