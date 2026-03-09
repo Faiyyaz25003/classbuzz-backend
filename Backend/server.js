@@ -28,6 +28,8 @@ import gameRoutes from "./Routes/gameRoutes.js";
 import folderRoutes from "./Routes/folderRoutes.js";
 import assignmentRoutes from "./Routes/assignmentRoutes.js";
 import examRoutes from "./Routes/examTimetableRoutes.js";
+import bookRoutes from "./Routes/bookRoutes.js";
+import issuedRoutes from "./Routes/issuedRoutes.js";
 
 dotenv.config();
 
@@ -93,6 +95,9 @@ app.use("/api/folders", folderRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/exam-timetable", examRoutes);
 app.use("/uploads", express.static("uploads"));
+app.use("/api/books", bookRoutes);
+app.use("/api/issued", issuedRoutes);
+
 // ============= Default Route =============
 app.get("/", (req, res) =>
   res.send("✅ School Management Server running successfully...")
