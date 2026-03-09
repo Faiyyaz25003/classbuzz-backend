@@ -1,11 +1,12 @@
+
 import Message from "../Models/MessageModel.js";
 import Conversation from "../Models/ConversationModel.js";
-import User from "../Models/UserModels.js";
 
-// Get messages between two users
+// ── Get messages between two users ───────────────────────
 export const getMessages = async (req, res) => {
   try {
     const { userId, otherUserId } = req.params;
+
     const messages = await Message.find({
       $or: [
         { sender: userId, receiver: otherUserId },
@@ -22,10 +23,11 @@ export const getMessages = async (req, res) => {
   }
 };
 
-// Get all conversations for a user
+// ── Get all conversations for a user ─────────────────────
 export const getConversations = async (req, res) => {
   try {
     const { userId } = req.params;
+
     const conversations = await Conversation.find({
       participants: userId,
     })
@@ -40,7 +42,7 @@ export const getConversations = async (req, res) => {
       const otherUser = conv.participants.find(
         (p) => p._id.toString() !== userId
       );
-      const unreadInfo = conv.unreadCount.find(
+      const unreadInfo = conv.unreadCount?.find(
         (u) => u.userId.toString() === userId
       );
 
@@ -71,13 +73,13 @@ export const getConversations = async (req, res) => {
   }
 };
 
-// Mark all messages from otherUser to userId as read
+// ── Mark all messages from otherUser → userId as read ────
 export const markAllAsRead = async (req, res) => {
   try {
     const { userId, otherUserId } = req.params;
 
     await Message.updateMany(
-      { receiver: userId, sender: otherUserId },
+      { receiver: userId, sender: otherUserId, isRead: false },
       { isRead: true, status: "read" }
     );
 
@@ -86,7 +88,7 @@ export const markAllAsRead = async (req, res) => {
     });
 
     if (conv) {
-      const u = conv.unreadCount.find(
+      const u = conv.unreadCount?.find(
         (u) => u.userId.toString() === userId
       );
       if (u) u.count = 0;
@@ -99,7 +101,7 @@ export const markAllAsRead = async (req, res) => {
   }
 };
 
-// Delete a message
+// ── Delete a message ──────────────────────────────────────
 export const deleteMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -110,7 +112,7 @@ export const deleteMessage = async (req, res) => {
   }
 };
 
-// Search messages for a user
+// ── Search messages ───────────────────────────────────────
 export const searchMessages = async (req, res) => {
   try {
     const { userId, query } = req.params;
@@ -126,3 +128,46 @@ export const searchMessages = async (req, res) => {
   }
 };
 
+// ── Vote on a poll ────────────────────────────────────────
+export const votePoll = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { userId, optionIndex } = req.body;
+
+    const message = await Message.findById(messageId);
+    if (!message || message.messageType !== "poll") {
+      return res.status(404).json({ success: false, message: "Poll not found" });
+    }
+
+    const pd = message.pollData;
+    if (!pd) return res.status(400).json({ success: false, message: "No poll data" });
+
+    const voters = pd.voters || {};
+    const votes = pd.votes || {};
+    const userVotes = voters[userId] || [];
+
+    if (!pd.allowMultiple) {
+      // Remove previous vote first
+      if (userVotes.length > 0) {
+        const prev = userVotes[0];
+        votes[prev] = Math.max(0, (votes[prev] || 1) - 1);
+      }
+      voters[userId] = [optionIndex];
+    } else {
+      if (userVotes.includes(optionIndex)) {
+        return res.json({ success: true, pollData: pd }); // already voted
+      }
+      voters[userId] = [...userVotes, optionIndex];
+    }
+
+    votes[optionIndex] = (votes[optionIndex] || 0) + 1;
+
+    message.pollData = { ...pd, votes, voters };
+    message.markModified("pollData");
+    await message.save();
+
+    res.json({ success: true, pollData: message.pollData });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

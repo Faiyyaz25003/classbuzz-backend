@@ -1,3 +1,5 @@
+
+
 import { Server } from "socket.io";
 import Message from "../Models/MessageModel.js";
 import Conversation from "../Models/ConversationModel.js";
@@ -16,7 +18,7 @@ export const initializeWebSocket = (server) => {
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
-    // User joins — register in activeUsers map
+    // ── User joins ────────────────────────────────────────
     socket.on("user:join", (userId) => {
       if (!userId) return;
       activeUsers.set(userId.toString(), socket.id);
@@ -25,23 +27,77 @@ export const initializeWebSocket = (server) => {
       console.log(`User ${userId} joined with socket ${socket.id}`);
     });
 
-    // Send a message
+    // ── Send a message (text / photo / document / voice / poll) ──
     socket.on("message:send", async (data) => {
       try {
-        const { senderId, receiverId, text, messageType, fileUrl, fileName } = data;
+        const {
+          senderId,
+          receiverId,
+          text,
+          messageType,
+          _tempId,
+          // rich fields
+          photoSrc,
+          docData,
+          voiceData,
+          pollData,
+          // legacy plain-file fields
+          fileUrl,
+          fileName,
+        } = data;
 
-        // 1. Save message to DB
-        const message = await Message.create({
+        // ── 1. Build message payload ──────────────────────
+        const msgPayload = {
           sender: senderId,
           receiver: receiverId,
           text: text || "",
           messageType: messageType || "text",
-          fileUrl,
-          fileName,
+          _tempId: _tempId || null,
           status: "sent",
-        });
+        };
 
-        // 2. Find or create conversation
+        // Photo
+        if (messageType === "photo" && photoSrc) {
+          msgPayload.photoSrc = photoSrc;
+        }
+
+        // Document
+        if (messageType === "document" && docData) {
+          msgPayload.docData = {
+            name: docData.name,
+            size: docData.size,
+            dataUrl: docData.dataUrl,
+            mimeType: docData.mimeType || null,
+          };
+        }
+
+        // Voice — never store blobUrl (browser-only), only duration
+        if (messageType === "voice" && voiceData) {
+          msgPayload.voiceData = {
+            duration: voiceData.duration || 0,
+            audioUrl: voiceData.audioUrl || null, // only if you uploaded to cloud
+          };
+        }
+
+        // Poll
+        if (messageType === "poll" && pollData) {
+          msgPayload.pollData = {
+            question: pollData.question,
+            options: pollData.options,
+            allowMultiple: pollData.allowMultiple || false,
+            votes: {},
+            voters: {},
+          };
+        }
+
+        // Legacy file fields
+        if (fileUrl) msgPayload.fileUrl = fileUrl;
+        if (fileName) msgPayload.fileName = fileName;
+
+        // ── 2. Save to DB ─────────────────────────────────
+        const message = await Message.create(msgPayload);
+
+        // ── 3. Find or create conversation ────────────────
         let conversation = await Conversation.findOne({
           participants: { $all: [senderId, receiverId] },
           isGroup: false,
@@ -72,11 +128,13 @@ export const initializeWebSocket = (server) => {
           await conversation.save();
         }
 
-        // 3. If receiver is online → deliver immediately
+        // ── 4. Deliver to receiver if online ──────────────
         const receiverSocketId = activeUsers.get(receiverId.toString());
         if (receiverSocketId) {
           message.status = "delivered";
-          message.deliveredTo.push({ userId: receiverId });
+          if (!message.deliveredTo.some((d) => d.userId.toString() === receiverId.toString())) {
+            message.deliveredTo.push({ userId: receiverId });
+          }
           await message.save();
 
           io.to(receiverSocketId).emit("message:receive", {
@@ -85,7 +143,7 @@ export const initializeWebSocket = (server) => {
           });
         }
 
-        // 4. Acknowledge sender
+        // ── 5. Acknowledge sender ─────────────────────────
         socket.emit("message:sent", {
           message,
           conversationId: conversation._id,
@@ -96,13 +154,12 @@ export const initializeWebSocket = (server) => {
       }
     });
 
-    // Mark a single message as read
+    // ── Mark message as read ──────────────────────────────
     socket.on("message:read", async ({ messageId, userId }) => {
       try {
         const message = await Message.findById(messageId);
         if (!message) return;
 
-        // Add to readBy if not already there
         if (!message.readBy.some((r) => r.userId.toString() === userId.toString())) {
           message.readBy.push({ userId });
         }
@@ -110,13 +167,13 @@ export const initializeWebSocket = (server) => {
         message.status = "read";
         await message.save();
 
-        // Notify the original sender
+        // Notify original sender
         const senderSocket = activeUsers.get(message.sender.toString());
         if (senderSocket) {
           io.to(senderSocket).emit("message:read", { messageId, userId });
         }
 
-        // Decrement unread count in conversation
+        // Decrement unread in conversation
         const conv = await Conversation.findOne({
           participants: { $all: [message.sender, message.receiver] },
         });
@@ -132,7 +189,50 @@ export const initializeWebSocket = (server) => {
       }
     });
 
-    // Typing indicators
+    // ── Poll vote via socket ───────────────────────────────
+    socket.on("poll:vote", async ({ messageId, userId, optionIndex }) => {
+      try {
+        const message = await Message.findById(messageId);
+        if (!message || message.messageType !== "poll" || !message.pollData) return;
+
+        const pd = message.pollData;
+        const voters = pd.voters || {};
+        const votes = pd.votes || {};
+        const userVotes = voters[userId] || [];
+
+        if (!pd.allowMultiple) {
+          if (userVotes.length > 0) {
+            const prev = userVotes[0];
+            votes[prev] = Math.max(0, (votes[prev] || 1) - 1);
+          }
+          voters[userId] = [optionIndex];
+        } else {
+          if (userVotes.includes(optionIndex)) return;
+          voters[userId] = [...userVotes, optionIndex];
+        }
+
+        votes[optionIndex] = (votes[optionIndex] || 0) + 1;
+        message.pollData = { ...pd, votes, voters };
+        message.markModified("pollData");
+        await message.save();
+
+        // Broadcast updated poll to both sender and receiver
+        const participantIds = [message.sender.toString(), message.receiver.toString()];
+        participantIds.forEach((uid) => {
+          const sid = activeUsers.get(uid);
+          if (sid) {
+            io.to(sid).emit("poll:updated", {
+              messageId,
+              pollData: message.pollData,
+            });
+          }
+        });
+      } catch (err) {
+        console.error("poll:vote error:", err);
+      }
+    });
+
+    // ── Typing indicators ─────────────────────────────────
     socket.on("typing:start", ({ senderId, receiverId }) => {
       const receiverSocket = activeUsers.get(receiverId.toString());
       if (receiverSocket) {
@@ -147,7 +247,7 @@ export const initializeWebSocket = (server) => {
       }
     });
 
-    // Disconnect — clean up activeUsers
+    // ── Disconnect ────────────────────────────────────────
     socket.on("disconnect", () => {
       if (socket.userId) {
         activeUsers.delete(socket.userId);
