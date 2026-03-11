@@ -32,6 +32,7 @@ import bookRoutes from "./Routes/bookRoutes.js";
 import issuedRoutes from "./Routes/issuedRoutes.js";
 import jobRoutes from "./Routes/jobRoutes.js";
 import announcementRoutes from "./Routes/announcementRoutes.js";
+import noteRoutes from "./Routes/noteRoutes.js";
 
 dotenv.config();
 
@@ -101,7 +102,7 @@ app.use("/api/books", bookRoutes);
 app.use("/api/issued", issuedRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/announcements", announcementRoutes);
-
+app.use("/api/notes", noteRoutes);
 
 // static folder
 app.use("/uploads", express.static("uploads"));
