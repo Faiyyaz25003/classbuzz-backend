@@ -31,6 +31,7 @@ import examRoutes from "./Routes/examTimetableRoutes.js";
 import bookRoutes from "./Routes/bookRoutes.js";
 import issuedRoutes from "./Routes/issuedRoutes.js";
 import jobRoutes from "./Routes/jobRoutes.js";
+import announcementRoutes from "./Routes/announcementRoutes.js";
 
 dotenv.config();
 
@@ -99,6 +100,12 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/books", bookRoutes);
 app.use("/api/issued", issuedRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/announcements", announcementRoutes);
+
+
+// static folder
+app.use("/uploads", express.static("uploads"));
+
 
 // ============= Default Route =============
 app.get("/", (req, res) =>
