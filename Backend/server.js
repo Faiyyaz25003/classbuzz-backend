@@ -33,6 +33,10 @@ import issuedRoutes from "./Routes/issuedRoutes.js";
 import jobRoutes from "./Routes/jobRoutes.js";
 import announcementRoutes from "./Routes/announcementRoutes.js";
 import noteRoutes from "./Routes/noteRoutes.js";
+import attendanceCodeRoutes from "./Routes/attendancecodeRoutes.js";
+import attendanceRecordRoutes from "./Routes/AttendancerecordRoutes.js";
+
+
 
 dotenv.config();
 
@@ -103,6 +107,8 @@ app.use("/api/issued", issuedRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/notes", noteRoutes);
+app.use("/api/attendance-code", attendanceCodeRoutes);
+app.use("/api/attendance-record", attendanceRecordRoutes);
 
 // static folder
 app.use("/uploads", express.static("uploads"));

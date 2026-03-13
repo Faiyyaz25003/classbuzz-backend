@@ -32,91 +32,107 @@ export const createUser = async (req, res) => {
 
 // 🔹 Register new user with auto-generated password + email notification
 export const registerUser = async (req, res) => {
-  try {
-    const { name, email, phone, gender, departments, positions, joinDate } = req.body;
 
-    // 1️⃣ Validate Input
-    if (!name || !email || !phone || !gender || !joinDate) {
-      return res.status(400).json({ message: "Please fill all required fields." });
-    }
+try {
 
-    // 2️⃣ Check if email exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({ message: "This email is already registered." });
-    }
+const {
+name,
+email,
+phone,
+gender,
+rollNo,
+semester,
+departments,
+positions,
+joinDate
+} = req.body;
 
-    // 3️⃣ Generate and hash password
-    const generatedPassword = Math.random().toString(36).slice(-8);
-    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+if (!name || !email || !phone || !gender || !joinDate) {
+return res
+.status(400)
+.json({ message: "Please fill all required fields." });
+}
 
-    // 4️⃣ Create new user in database
-    const user = new User({
-      name,
-      email,
-      phone,
-      gender,
-      departments,
-      positions,
-      joinDate,
-      password: hashedPassword,
-    });
+const existingUser = await User.findOne({ email });
 
-    await user.save();
+if (existingUser) {
+return res
+.status(409)
+.json({ message: "This email is already registered." });
+}
 
-    // 5️⃣ Setup Nodemailer Transporter
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER, // your gmail address
-        pass: process.env.EMAIL_PASS, // your app password
-      },
-    });
+// generate password
+const generatedPassword = Math.random().toString(36).slice(-8);
 
-    // 6️⃣ Email Template (HTML)
-    const mailOptions = {
-      from: `"ClassBuzz" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "🎉 Welcome to ClassBuzz - Your Account Credentials",
-      html: `
-        <div style="font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 20px;">
-          <div style="max-width: 600px; margin: auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 6px rgba(0,0,0,0.1);">
-            <div style="background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; padding: 20px; text-align: center;">
-              <h1>Welcome to ClassBuzz 🎓</h1>
-              <p>Your account has been successfully created!</p>
-            </div>
-            <div style="padding: 20px;">
-              <h2>Hello, ${name} 👋</h2>
-              <p>Here are your login credentials:</p>
-              <ul style="list-style: none; padding-left: 0; font-size: 16px;">
-                <li><strong>Email:</strong> ${email}</li>
-                <li><strong>Password:</strong> ${generatedPassword}</li>
-                <li><strong>Departments:</strong> ${departments?.join(", ") || "N/A"}</li>
-                <li><strong>Positions:</strong> ${positions?.join(", ") || "N/A"}</li>
-              </ul>
-              <p style="margin-top: 15px;">🔒 Please change your password after logging in for better security.</p>
-              <p style="margin-top: 20px;">Thank you for joining <b>ClassBuzz</b>!</p>
-            </div>
-          </div>
-        </div>
-      `,
-    };
+const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
-    // 7️⃣ Send Email
-    await transporter.sendMail(mailOptions);
+// image upload
+let profilePic = "";
 
-    // 8️⃣ Respond to frontend
-    res.status(201).json({
-      message: `✅ User registered successfully. Credentials sent to ${email}.`,
-      user,
-    });
-  } catch (error) {
-    console.error("❌ Registration Error:", error);
-    res.status(500).json({
-      message: "Server error during registration.",
-      error: error.message,
-    });
-  }
+if (req.file) {
+profilePic = req.file.filename;
+}
+
+const user = new User({
+
+name,
+email,
+phone,
+gender,
+rollNo,
+semester,
+departments: JSON.parse(departments || "[]"),
+positions: JSON.parse(positions || "[]"),
+joinDate,
+password: hashedPassword,
+profilePic
+
+});
+
+await user.save();
+
+// email transporter
+const transporter = nodemailer.createTransport({
+service: "gmail",
+auth: {
+user: process.env.EMAIL_USER,
+pass: process.env.EMAIL_PASS,
+},
+});
+
+const mailOptions = {
+from: `"ClassBuzz" <${process.env.EMAIL_USER}>`,
+to: email,
+subject: "🎉 Welcome to ClassBuzz - Your Account Credentials",
+html: `
+<h2>Hello ${name}</h2>
+<p>Your account has been created successfully.</p>
+
+<p><b>Email:</b> ${email}</p>
+<p><b>Password:</b> ${generatedPassword}</p>
+
+<p>Please change your password after login.</p>
+`,
+};
+
+await transporter.sendMail(mailOptions);
+
+res.status(201).json({
+message: `User registered successfully`,
+user,
+});
+
+} catch (error) {
+
+console.error(error);
+
+res.status(500).json({
+message: "Server error during registration",
+error: error.message,
+});
+
+}
+
 };
 
 // 🔹 Get all users (detailed version with sorting)

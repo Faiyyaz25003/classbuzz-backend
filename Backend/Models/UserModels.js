@@ -1,37 +1,88 @@
 
+// import mongoose from "mongoose";
+
+// const UserSchema = new mongoose.Schema(
+//   {
+//     name: { type: String, required: true },
+//     email: { type: String, required: true, unique: true },
+//     profilePic: { type: String, default: "" },
+//     status: { type: String, default: "Offline" },
+//     chatCode: { type: String, default: "" },
+//     about: { type: String, default: "" },
+//     phone: { type: String, required: true },
+
+//     gender: { type: String, required: true },
+
+//     departments: {
+//       type: [String],
+//       default: [],
+//     },
+
+//     positions: {
+//       type: [String],
+//       default: [],
+//     },
+
+//     joinDate: { type: Date, required: true },
+
+//     password: { type: String, required: true },
+
+//     isBlocked: { type: Boolean, default: false },
+//   },
+//   { timestamps: true }
+// );
+
+// const User =
+//   mongoose.models.User || mongoose.model("User", UserSchema);
+// export default User;
+
+
+
 import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    profilePic: { type: String, default: "" },
-    status: { type: String, default: "Offline" },
-    chatCode: { type: String, default: "" },
-    about: { type: String, default: "" },
-    phone: { type: String, required: true },
+{
+  name: { type: String, required: true },
 
-    gender: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
 
-    departments: {
-      type: [String],
-      default: [],
-    },
+  profilePic: { type: String, default: "" },
 
-    positions: {
-      type: [String],
-      default: [],
-    },
+  status: { type: String, default: "Offline" },
 
-    joinDate: { type: Date, required: true },
+  chatCode: { type: String, default: "" },
 
-    password: { type: String, required: true },
+  about: { type: String, default: "" },
 
-    isBlocked: { type: Boolean, default: false },
+  phone: { type: String, required: true },
+
+  gender: { type: String, required: true },
+
+  rollNo: { type: String },
+
+  semester: { type: String },
+
+  departments: {
+    type: [String],
+    default: [],
   },
-  { timestamps: true }
+
+  positions: {
+    type: [String],
+    default: [],
+  },
+
+  joinDate: { type: Date, required: true },
+
+  password: { type: String, required: true },
+
+  isBlocked: { type: Boolean, default: false },
+
+},
+{ timestamps: true }
 );
 
 const User =
-  mongoose.models.User || mongoose.model("User", UserSchema);
+mongoose.models.User || mongoose.model("User", UserSchema);
+
 export default User;
