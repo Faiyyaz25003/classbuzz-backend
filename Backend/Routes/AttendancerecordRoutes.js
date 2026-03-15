@@ -1,19 +1,22 @@
 import express from "express";
 import {
-    getStudentSubjectRecords,
-    getTeacherDayRecords,
-    checkTodayAttendance,
+  getStudentSubjectRecords,
+  getTeacherDayRecords,
+  checkTodayAttendance,
+  getWeeklyReport,
+  subjectPercentage,
+  exportExcel,
+  exportPDF,
 } from "../Controller/attendancerecordController.js";
 
 const router = express.Router();
 
-// Student: apna subject ka full record
 router.get("/student", getStudentSubjectRecords);
-
-// Teacher: ek subject ka ek din ka sheet
 router.get("/teacher", getTeacherDayRecords);
-
-// Check: aaj attendance hai ya nahi
 router.get("/check", checkTodayAttendance);
+router.get("/weekly", getWeeklyReport);
+router.get("/subject-percentage", subjectPercentage);
+router.get("/export-excel", exportExcel);
+router.get("/export-pdf", exportPDF);
 
 export default router;

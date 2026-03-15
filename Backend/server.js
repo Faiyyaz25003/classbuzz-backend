@@ -34,7 +34,7 @@ import jobRoutes from "./Routes/jobRoutes.js";
 import announcementRoutes from "./Routes/announcementRoutes.js";
 import noteRoutes from "./Routes/noteRoutes.js";
 import attendanceCodeRoutes from "./Routes/attendancecodeRoutes.js";
-import attendanceRecordRoutes from "./Routes/AttendancerecordRoutes.js";
+import attendanceRecordRouter from "./Routes/AttendancerecordRoutes.js";
 
 
 
@@ -108,7 +108,8 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/attendance-code", attendanceCodeRoutes);
-app.use("/api/attendance-record", attendanceRecordRoutes);
+// app.use("/api/attendance-record", attendanceRecordRoutes);
+app.use("/api/attendance-record", attendanceRecordRouter);
 
 // static folder
 app.use("/uploads", express.static("uploads"));
