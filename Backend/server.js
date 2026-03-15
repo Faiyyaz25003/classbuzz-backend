@@ -168,6 +168,7 @@ import announcementRoutes from "./Routes/announcementRoutes.js";
 import noteRoutes from "./Routes/noteRoutes.js";
 import attendanceCodeRoutes from "./Routes/attendancecodeRoutes.js";
 import attendanceRecordRouter from "./Routes/AttendancerecordRoutes.js";
+import notificationRoutes from "./Routes/notificationRoutes.js";
 
 // ============= Auto Absent Cron Job =============
 import { startAutoAbsentJob } from "./Jobs/autoAbsentJob.js";
@@ -248,6 +249,7 @@ app.use("/api/announcements", announcementRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/attendance-code", attendanceCodeRoutes);
 app.use("/api/attendance-record", attendanceRecordRouter);
+app.use("/api/notifications", notificationRoutes);
 
 // ============= Default Route =============
 app.get("/", (req, res) =>
