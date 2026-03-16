@@ -1,6 +1,9 @@
 /**
  * autoAbsentJob.js
  * Path: Backend/Jobs/autoAbsentJob.js
+ *
+ * Har expired code ke liye separately process karta hai.
+ * Ek din mein multiple codes = multiple records per student.
  */
 
 import cron from "node-cron";
@@ -14,43 +17,26 @@ async function getEnrolledStudents(courseName, semester) {
   try {
     const allUsers = await User.find({}).lean();
 
-    console.log(`[AutoAbsent] Total users in DB: ${allUsers.length}`);
-
     const filtered = allUsers.filter((user) => {
-
-      // Position check
       const isStudent =
         Array.isArray(user.positions) &&
-        user.positions.some(
-          (p) => typeof p === "string" && p.toLowerCase() === "student"
-        );
+        user.positions.some((p) => typeof p === "string" && p.toLowerCase() === "student");
 
-      // Department check — courseName se match
       const inDept =
         Array.isArray(user.departments) &&
         user.departments.some(
-          (d) =>
-            typeof d === "string" &&
+          (d) => typeof d === "string" &&
             d.toLowerCase() === String(courseName).toLowerCase()
         );
 
-      // Semester check — Number aur String dono handle karo
       const userSem = String(user.semester ?? "").trim();
       const codeSem = String(semester ?? "").trim();
       const inSem = userSem === codeSem;
 
-      // Debug har user ke liye
-      console.log(
-        `[AutoAbsent] User: ${user.name} | isStudent: ${isStudent} | inDept: ${inDept} | userSem: "${userSem}" | codeSem: "${codeSem}" | inSem: ${inSem} | depts: ${JSON.stringify(user.departments)} | positions: ${JSON.stringify(user.positions)}`
-      );
-
       return isStudent && inDept && inSem;
     });
 
-    console.log(
-      `[AutoAbsent] Enrolled students found: ${filtered.length} | courseName: "${courseName}" | semester: "${semester}"`
-    );
-
+    console.log(`[AutoAbsent] Students found: ${filtered.length} | course: "${courseName}" | sem: "${semester}"`);
     return filtered;
   } catch (err) {
     console.error("[AutoAbsent] DB fetch error:", err.message);
@@ -60,20 +46,18 @@ async function getEnrolledStudents(courseName, semester) {
 
 async function processExpiredCode(expiredCode) {
   const date = todayDate();
+  const codeId = String(expiredCode._id);
 
-  console.log(`[AutoAbsent] ═══════════════════════════════════════`);
-  console.log(`[AutoAbsent] Subject    : ${expiredCode.subjectName}`);
-  console.log(`[AutoAbsent] SubjectId  : ${expiredCode.subjectId}`);
-  console.log(`[AutoAbsent] CourseName : ${expiredCode.courseName}`);
-  console.log(`[AutoAbsent] CourseId   : ${expiredCode.courseId}`);
-  console.log(`[AutoAbsent] Semester   : ${expiredCode.semester}`);
-  console.log(`[AutoAbsent] Date       : ${date}`);
-  console.log(`[AutoAbsent] UsedBy     : ${JSON.stringify(expiredCode.usedBy)}`);
-  console.log(`[AutoAbsent] ═══════════════════════════════════════`);
+  console.log(`[AutoAbsent] ── Processing code: ${expiredCode.code} ──────────`);
+  console.log(`[AutoAbsent] Subject   : ${expiredCode.subjectName}`);
+  console.log(`[AutoAbsent] CourseName: ${expiredCode.courseName}`);
+  console.log(`[AutoAbsent] Semester  : ${expiredCode.semester}`);
+  console.log(`[AutoAbsent] CodeId    : ${codeId}`);
+  console.log(`[AutoAbsent] UsedBy    : ${JSON.stringify(expiredCode.usedBy)}`);
 
-  // Agar courseName nahi hai toh process nahi kar sakte
+  // Agar courseName nahi hai — purana code, skip
   if (!expiredCode.courseName) {
-    console.log(`[AutoAbsent] ⚠️  courseName missing — yeh purana code hai, skip kar rahe hain`);
+    console.log(`[AutoAbsent] courseName missing — purana code, skip`);
     await AttendanceCode.findByIdAndUpdate(expiredCode._id, {
       autoAbsentProcessed: true,
       isActive: false,
@@ -81,10 +65,10 @@ async function processExpiredCode(expiredCode) {
     return;
   }
 
+  // Jo students ne is specific code se present mark kiya
   const presentUserIds = new Set(
     (expiredCode.usedBy || []).map((u) => String(u.userId))
   );
-  console.log(`[AutoAbsent] Present users: ${[...presentUserIds].join(", ") || "none"}`);
 
   const enrolledStudents = await getEnrolledStudents(
     expiredCode.courseName,
@@ -92,7 +76,7 @@ async function processExpiredCode(expiredCode) {
   );
 
   if (enrolledStudents.length === 0) {
-    console.log(`[AutoAbsent] ⚠️  No students found — processed mark kar rahe hain`);
+    console.log(`[AutoAbsent] No students found — marking processed`);
     await AttendanceCode.findByIdAndUpdate(expiredCode._id, {
       autoAbsentProcessed: true,
       isActive: false,
@@ -108,24 +92,23 @@ async function processExpiredCode(expiredCode) {
     const userId = String(student._id);
     const userName = student.name || student.email || "Student";
 
+    // Is student ne is code se present kiya?
     if (presentUserIds.has(userId)) {
-      console.log(`[AutoAbsent] ${userName} → Already Present, skip`);
+      console.log(`[AutoAbsent] ${userName} → Present tha, skip`);
       presentSkipped++;
       continue;
     }
 
-    const exists = await AttendanceRecord.findOne({
-      userId,
-      subjectId: expiredCode.subjectId,
-      date,
-    });
+    // Is codeId ke liye pehle se record hai? (double processing se bachao)
+    const exists = await AttendanceRecord.findOne({ userId, subjectId: expiredCode.subjectId, codeId });
 
     if (exists) {
-      console.log(`[AutoAbsent] ${userName} → Record exists (${exists.status}), skip`);
+      console.log(`[AutoAbsent] ${userName} → Record already exists (${exists.status}), skip`);
       alreadyExists++;
       continue;
     }
 
+    // Absent mark karo is code ke liye
     try {
       await AttendanceRecord.create({
         userId,
@@ -133,11 +116,11 @@ async function processExpiredCode(expiredCode) {
         subjectId: expiredCode.subjectId,
         subjectName: expiredCode.subjectName,
         courseId: expiredCode.courseId,
-        // semester Number mein save karo (AttendanceRecord model Number expect karta hai)
         semester: Number(expiredCode.semester),
         date,
         status: "Absent",
         codeUsed: "auto-absent",
+        codeId,   // ← is code ka ID — alag session ka alag record
       });
       absentMarked++;
       console.log(`[AutoAbsent] ${userName} → ❌ ABSENT marked`);
@@ -150,16 +133,13 @@ async function processExpiredCode(expiredCode) {
     }
   }
 
+  // Code processed mark karo
   await AttendanceCode.findByIdAndUpdate(expiredCode._id, {
     autoAbsentProcessed: true,
     isActive: false,
   });
 
-  console.log(`[AutoAbsent] ── Result ────────────────────────────`);
-  console.log(`[AutoAbsent] Absent marked  : ${absentMarked}`);
-  console.log(`[AutoAbsent] Present skipped: ${presentSkipped}`);
-  console.log(`[AutoAbsent] Already existed: ${alreadyExists}`);
-  console.log(`[AutoAbsent] ─────────────────────────────────────`);
+  console.log(`[AutoAbsent] ── Result: Absent: ${absentMarked} | Present skip: ${presentSkipped} | Already had: ${alreadyExists}`);
 }
 
 export function startAutoAbsentJob() {
@@ -174,9 +154,7 @@ export function startAutoAbsentJob() {
 
       if (expiredCodes.length === 0) return;
 
-      console.log(
-        `[AutoAbsent] ✅ ${expiredCodes.length} expired code(s) found at ${now.toLocaleTimeString()}`
-      );
+      console.log(`[AutoAbsent] ${expiredCodes.length} expired code(s) at ${now.toLocaleTimeString()}`);
 
       for (const code of expiredCodes) {
         await processExpiredCode(code);
@@ -186,5 +164,5 @@ export function startAutoAbsentJob() {
     }
   });
 
-  console.log("[AutoAbsent] ✅ Cron job started — har minute check hoga");
+  console.log("[AutoAbsent] Cron job started — har minute check hoga");
 }
