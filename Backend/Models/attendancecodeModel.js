@@ -1,30 +1,19 @@
 import mongoose from "mongoose";
 
-/**
- * AttendanceCode Model
- * ─────────────────────────────────────────────────────────────────
- * autoAbsentProcessed field add kiya gaya hai:
- * → true hone par cron job dobara process nahi karega
- * ─────────────────────────────────────────────────────────────────
- */
 const attendanceCodeSchema = new mongoose.Schema(
   {
-    subjectId: { type: String, required: true },
+    subjectId:   { type: String, required: true },
     subjectName: { type: String, required: true },
-    courseId: { type: String, required: true },
-    semester: { type: Number, required: true },
-    code: { type: String, required: true },
-    expiresAt: { type: Date, required: true },
-    isActive: { type: Boolean, default: true },
-
-    // ── NEW FIELD ──────────────────────────────────────────────
-    // Cron job ne is code ke liye auto-absent process kar diya?
+    courseId:    { type: String, required: true },  // MongoDB ObjectId (String)
+    courseName:  { type: String, required: true },  // "BCA", "MCA" — cron job ke liye
+    semester:    { type: Number, required: true },
+    code:        { type: String, required: true },
+    expiresAt:   { type: Date,   required: true },
+    isActive:    { type: Boolean, default: true },
     autoAbsentProcessed: { type: Boolean, default: false },
-    // ──────────────────────────────────────────────────────────
-
     usedBy: [
       {
-        userId: String,
+        userId:   String,
         userName: String,
         markedAt: { type: Date, default: Date.now },
       },
@@ -32,6 +21,8 @@ const attendanceCodeSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+attendanceCodeSchema.index({ expiresAt: 1, autoAbsentProcessed: 1 });
 
 export default mongoose.models.AttendanceCode ||
   mongoose.model("AttendanceCode", attendanceCodeSchema);
