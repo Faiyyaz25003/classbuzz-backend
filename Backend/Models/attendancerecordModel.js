@@ -2,11 +2,12 @@ import mongoose from "mongoose";
 
 /**
  * AttendanceRecord — UPDATED
- * Ab ek student ek subject ek din mein multiple records rakh sakta hai
- * — har code generate ke liye alag record
- * Unique: userId + subjectId + date + codeId
+ * Unique: userId + subjectId + codeId
+ * Ek student ek code ke liye sirf ek record
+ * Ek din mein multiple codes = multiple records
  */
 
+// Cache clear karo
 delete mongoose.models.AttendanceRecord;
 
 const attendanceRecordSchema = new mongoose.Schema(
@@ -20,18 +21,15 @@ const attendanceRecordSchema = new mongoose.Schema(
     date:        { type: String, required: true },
     status:      { type: String, enum: ["Present", "Absent"], required: true },
     codeUsed:    { type: String, default: "—" },
-
-    // Har attendance code ka unique ID — isi se pata chalega kis session ka record hai
-    codeId:      { type: String, required: true },
-
+    codeId:      { type: String, required: true }, // Har code session ka unique ID
     markedAt:    { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
-// Ek student + ek subject + ek date + ek codeId = ek record
+// Unique: ek student + ek subject + ek codeId = ek record
 attendanceRecordSchema.index(
-  { userId: 1, subjectId: 1, date: 1, codeId: 1 },
+  { userId: 1, subjectId: 1, codeId: 1 },
   { unique: true }
 );
 
