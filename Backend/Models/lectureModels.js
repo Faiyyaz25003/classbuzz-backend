@@ -40,8 +40,19 @@ const lectureSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    transcript: {
+      type: String,
+      default: "",
+    },
+    summaryGeneratedByAI: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Lecture", lectureSchema);
+const Lecture =
+  mongoose.models.Lecture || mongoose.model("Lecture", lectureSchema);
+
+export default Lecture;
