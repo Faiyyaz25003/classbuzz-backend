@@ -40,7 +40,7 @@ import {
   getMe,
 } from "../Controller/userController.js";
 
-import { protect } from "../middleware/authMiddleware.js";
+import { protect } from "../Middleware/authMiddleware.js";
 import upload from "../Middleware/upload.js";
 
 const router = express.Router();
